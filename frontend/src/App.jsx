@@ -1,34 +1,75 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import FloatingShape from "./components/FloatingShape"
+import { Navigate, Route, Routes } from 'react-router-dom';
+import Home from "./pages/Home";
+import Signup from "./pages/Signup";
+import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import Verify from "./pages/Verify";
+import { Toaster } from 'react-hot-toast';
+import { useAuthStore } from "./store/authStore";
+import { useEffect } from "react";
+
+// protect routes;
+
+const ProtectedRoute = ({children}) => {
+  const { isAuthenticated, user } = useAuthStore();
+  
+  if(!isAuthenticated){
+    return <Navigate to='/login' replace/>
+  }
+
+  if(!user.isVerified){
+    return <Navigate to='/verify-email' replace/>
+  }
+
+  return children;
+}
+
+const RedirectAuthenticatedUser = ({children}) => {
+  const {isAuthenticated, user} = useAuthStore();
+
+  if(isAuthenticated && user.isVerified){
+    return <Navigate to='/' replace />
+  }
+
+  return children;
+}
+
 
 function App() {
-  const [count, setCount] = useState(0)
+  const {checkAuth, isAuthenticated, user} = useAuthStore();
+
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  console.log("isAuthenticated: ", isAuthenticated);
+  console.log("user: ", user);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div>
+      <Routes>
+        <Route path='/' element={<ProtectedRoute>
+          <Home/>
+        </ProtectedRoute>}></Route>
+        <Route path='/signup' element={<RedirectAuthenticatedUser>
+          <Signup/>
+          </RedirectAuthenticatedUser>}></Route>
+        <Route path='/login' element={<RedirectAuthenticatedUser>
+          <Login/>
+          </RedirectAuthenticatedUser>}></Route>
+        <Route path='/forgot-password' element={<RedirectAuthenticatedUser>
+          <ForgotPassword/>
+          </RedirectAuthenticatedUser>}></Route>
+        <Route path='/reset-password/:resetToken' element={<ResetPassword/>}></Route>
+        <Route path='/verify-email' element={<RedirectAuthenticatedUser>
+          <Verify/>
+          </RedirectAuthenticatedUser>}></Route>
+      </Routes>
+      <Toaster/>
+    </div>
   )
 }
 

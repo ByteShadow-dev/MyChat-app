@@ -75,10 +75,13 @@ export async function signup(req, res){
 }
 
 export async function login(req, res){
-    const { email, password } = req.body;
+    const { usernameOrEmail, password } = req.body;
     try{
         const user = await User.findOne({
-            email: email
+            $or: [
+                { email: usernameOrEmail },
+                { username: usernameOrEmail}
+            ]
         })
         if(!user){
             return res.status(400).json({
@@ -108,7 +111,7 @@ export async function login(req, res){
         })
     }catch(error){
         console.error("Error in login controller");
-        res.status(504).json({ message: "Internal server error"});
+        res.status(500).json({ message: "Internal server error"});
     }
 }
 
@@ -156,9 +159,14 @@ export async function verifyEmail(req, res){
 }
 
 export async function forgotPassword(req, res){
-     const { email } = req.body;
+     const { usernameOrEmail } = req.body;
     try{
-       const user = await User.findOne({ email });
+       const user = await User.findOne({ 
+        $or: [
+            { email: usernameOrEmail},
+            { username: usernameOrEmail}
+        ]
+        });
        if(!user){
         return res.status(400).json({
             success: false,
@@ -166,10 +174,12 @@ export async function forgotPassword(req, res){
         })
        }
        
+       const userEmail = user.email;
+
        const resetToken = crypto.randomBytes(20).toString("hex");
        const resetTokenExpiresAt = Date.now() + 60*60*1000;
 
-       await sendPasswordResetEmail(email, `${process.env.CLIENT_URL}/api/auth/reset-password/${resetToken}`);
+       await sendPasswordResetEmail(userEmail, `${process.env.CLIENT_URL}/reset-password/${resetToken}`);
 
        user.resetPasswordToken = resetToken;
        user.resetPasswordExpiresAt = resetTokenExpiresAt;
@@ -177,11 +187,11 @@ export async function forgotPassword(req, res){
 
        res.status(200).json({
         success: true,
-        messaage: "Password reset link sent to your email"
+        message: "Password reset link sent to your email"
        });
     }catch(error){
         console.log("Error in forgotPassword controller");
-        res.status(400).json({ success: false, message: error.messaage});
+        res.status(500).json({ success: false, message: error.message});
     }
 }
 
