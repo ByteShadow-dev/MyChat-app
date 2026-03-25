@@ -1,5 +1,4 @@
 import React from 'react';
-import FloatingShape from "../components/FloatingShape"
 import { motion } from 'framer-motion';
 import { User, Lock, Mail, Loader, EyeIcon, EyeClosedIcon } from 'lucide-react';
 import { useState, } from 'react';
@@ -32,13 +31,6 @@ const Signup = () => {
     <div className="min-h-screen 
     bg-linear-to-br from gray-900 via-green-900 to to-emerald-900
     flex items-center justify-center relative overflow-hidden">
-      <FloatingShape 
-      color="bg-green-500" size="h-64 w-64" top="-5%" left="10%" delay={0}/>
-      <FloatingShape 
-      color="bg-emerald-500" size="h-48 w-48" top="70%" left="80%" delay={5}/>
-      <FloatingShape 
-      color="bg-lime-500" size="h-32 w-32" top="40%" left="10%" delay={2}/>
-
       <motion.div
       initial={{opacity: 0, y:20}}
       animate={{opacity: 1,y:0}}
@@ -46,7 +38,7 @@ const Signup = () => {
       className='max-w-md w-100 bg-gray-800/50 backdrop-filter backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden'
       >
         <div className='p-8'>
-          <h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-green-400 to-emerald-500 text-transparent bg-clip-text'>
+          <h2 className='text-3xl font-bold mb-6 text-center bg-linear-to-r from-green-400 to-emerald-500 text-transparent bg-clip-text'>
             Create Account
           </h2>
           <form onSubmit={handleSignUp}>

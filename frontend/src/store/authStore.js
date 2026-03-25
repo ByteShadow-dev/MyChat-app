@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
+import { axiosInstance } from '../lib/axios.js'
+import toast from 'react-hot-toast'
 
 const API_URL = 'http://localhost:5000/api/auth';
 
@@ -11,6 +13,7 @@ export const useAuthStore = create((set) => ({
     error:null,
     isLoading:false,
     isCheckingAuth:true,
+	isUpdatingProfile: false, 
 
     signup: async(username, name, email, password) => {
         set({isLoading:true, error:null})
@@ -93,5 +96,21 @@ export const useAuthStore = create((set) => ({
 			});
 			throw error;
 		}
+	
 	},
+	updateProfile: async (data) => {
+		set({ isUpdatingProfile: true});
+		try{
+			const res = await axiosInstance.put("/auth/update-profile", data);
+			set({ user: res.data});
+			toast.success("Profile updated successfully");
+		}catch(error){
+			console.log("Error in updateProfile store: ", error);
+			toast.error(error.response.data.message);
+		}finally{
+			set({isUpdatingProfile: false});
+		}
+	}
+	
+	
 }))

@@ -1,47 +1,25 @@
 import React from 'react'
 import { useAuthStore } from '../store/authStore'
-import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { HomeIcon, Loader } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import { BubblesIcon, MessageCircleIcon } from 'lucide-react';
 
 const Home = () => {
-
-    const navigate = useNavigate();
-    const {isLoading, logout, user} = useAuthStore();
-  
-    const handleLogout = async () => {
-      try {
-        await logout();
-        toast.success("Logged out successfully!");
-        setTimeout(() => {
-          window.location.replace('/');
-        }, 1500);
-      }catch(error){
-        console.log(error.response.data);
-        toast.error("Unable to log out");
-      }
-    }
-  
-
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
   return (
     <div>
-
-      <div className='flex justify-between p-3 bg-base-300'>
-        <HomeIcon className='size-10'/>
-        {isLoading ? <button disabled className='btn btn-primary animate-spin'>
-          <Loader/>
-        </button> : 
-        <button onClick={handleLogout} className='btn btn-primary'>
-          Logout
-        </button>}
+      <Navbar/>
+      <div className='flex min-h-screen justify-center items-center'>
+        <div className='flex flex-col justify-center items-center w-md bg-base-300/80 rounded-4xl shadow-lg gap-10 pt-30 pb-30'>
+          <h1 className='text-2xl font-mono'>Hello, {user.name}!</h1>
+          <h1 className='text-3xl font-light'>Welcome to ChatRooms</h1>
+          <button data-theme='forest' className='btn btn-primary font-mono' onClick={() => navigate('/chats')}>
+            <MessageCircleIcon/>
+            Start chatting
+          </button>
+        </div>
       </div>
-      <div className='flex items-center justify-center'>
-          <div className='text-center max-w-md w-100 h-100 bg-gray-800/50 backdrop-filter backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden'>
-            <h1>Hello {user.name}!</h1>
-            
-          </div>
-      </div>
-
     </div>
   )
 }

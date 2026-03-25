@@ -1,5 +1,4 @@
 import React from 'react';
-import FloatingShape from "../components/FloatingShape"
 import { motion } from 'framer-motion';
 import { User, Loader } from 'lucide-react';
 import { useState, useEffect } from 'react';

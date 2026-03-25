@@ -1,15 +1,17 @@
-import FloatingShape from "./components/FloatingShape"
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Home from "./pages/Home";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
+import Settings from './pages/Settings'
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Verify from "./pages/Verify";
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from "./store/authStore";
 import { useEffect } from "react";
-
+import Chat from "./pages/Chat";
+import Profile from './pages/Profile';
+import { useThemeStore } from './store/themeStore';
 // protect routes;
 
 const ProtectedRoute = ({children}) => {
@@ -47,9 +49,11 @@ function App() {
 
   console.log("isAuthenticated: ", isAuthenticated);
   console.log("user: ", user);
+  const { theme } = useThemeStore();
 
   return (
-    <div>
+    <div data-theme={theme}>
+      <Toaster/>
       <Routes>
         <Route path='/' element={<ProtectedRoute>
           <Home/>
@@ -66,9 +70,19 @@ function App() {
         <Route path='/reset-password/:resetToken' element={<ResetPassword/>}></Route>
         <Route path='/verify-email' element={<RedirectAuthenticatedUser>
           <Verify/>
-          </RedirectAuthenticatedUser>}></Route>
+          </RedirectAuthenticatedUser>}>
+        </Route>
+
+        <Route path='/chats' element={<ProtectedRoute>
+          <Chat/>
+        </ProtectedRoute>}>
+        </Route>
+        <Route path='/profile' element={<ProtectedRoute>
+          <Profile/>
+        </ProtectedRoute>}></Route>
+        <Route path='/settings' element={<Settings/>}/>
       </Routes>
-      <Toaster/>
+      
     </div>
   )
 }

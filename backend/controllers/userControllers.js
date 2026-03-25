@@ -3,7 +3,12 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import { generateTokenAndSetCookie } from '../utils/generateTokenAndSetCookie.js';
 import { sendPasswordResetEmail, sendResetSuccessEmail, sendVerificationEmail } from '../mail-service/emails.js';
+import cloudinary from '../configs/cloudinary.js';
 import crypto from "crypto";
+
+import fs from 'fs';
+import path from 'path';
+
 const saltRounds = 10;
 
 export async function checkAuth(req, res){
@@ -227,5 +232,65 @@ export async function resetPassword(req, res){
     }
 }
 
+export const updateProfile = async (req, res) => {
+    try{
+        const { profilePic } = req.body;
+        const userId = req.user._id;
 
+        if(!profilePic){
+            return res.status(400).json({ message: "Profile picture is required"});
+        }
 
+        const uploadResponse = await cloudinary.uploader.upload(profilePic);
+        const updatedUser = await User.findByIdAndUpdate(userId, {profilePic:uploadResponse.secure_url}, {new:true});
+
+        res.status(200).json(updatedUser)
+        
+    }catch(error){
+        console.log("Error in updateProfile controller: ", error);
+        res.status(500).json("Internal server error");    
+    }
+}
+
+export const updateProfileLocal = async (req, res) => {
+    try {
+        const { profilePic } = req.body;
+        const userId = req.user._id;
+
+        if (!profilePic) {
+            return res.status(400).json({ message: "Profile picture is required" });
+        }
+
+        // Create folder public/userId if it doesn't exist
+        const userFolder = path.join('public', userId.toString());
+        if (!fs.existsSync(userFolder)) {
+            fs.mkdirSync(userFolder, { recursive: true });
+        }
+
+        // Strip the base64 header (e.g. "data:image/png;base64,") and get extension
+        const matches = profilePic.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (!matches) {
+            return res.status(400).json({ message: "Invalid image format" });
+        }
+
+        const ext = matches[1];        // e.g. "png", "jpg"
+        const base64Data = matches[2]; // actual base64 string
+
+        // Save file
+        const filePath = path.join(userFolder, `profile.${ext}`);
+        fs.writeFileSync(filePath, base64Data, 'base64');
+
+        // Save the file path in DB
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { profilePic: `/${filePath}` },
+            { new: true }
+        );
+
+        res.status(200).json(updatedUser);
+
+    } catch (error) {
+        console.log("Error in updateProfileLocal controller: ", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
