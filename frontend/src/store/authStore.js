@@ -2,18 +2,20 @@ import { create } from 'zustand';
 import axios from 'axios';
 import { axiosInstance } from '../lib/axios.js'
 import toast from 'react-hot-toast'
+import { io } from "socket.io-client";
 
 const API_URL = 'http://localhost:5000/api/auth';
 
 axios.defaults.withCredentials = true;
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
     user:null,
     isAuthenticated:false,
     error:null,
     isLoading:false,
     isCheckingAuth:true,
 	isUpdatingProfile: false, 
+	onlineUsers: [],
 
     signup: async(username, name, email, password) => {
         set({isLoading:true, error:null})
@@ -110,7 +112,27 @@ export const useAuthStore = create((set) => ({
 		}finally{
 			set({isUpdatingProfile: false});
 		}
-	}
+	},
+	connectSocket: () => {
+    const { authUser } = get();
+    if (!authUser || get().socket?.connected) return;
+
+    const socket = io(API_URL, {
+      query: {
+        userId: authUser._id,
+      },
+    });
+    socket.connect();
+
+    set({ socket: socket });
+
+    socket.on("getOnlineUsers", (userIds) => {
+      set({ onlineUsers: userIds });
+    });
+  },
+  disconnectSocket: () => {
+    if (get().socket?.connected) get().socket.disconnect();
+  },
 	
 	
 }))
