@@ -16,6 +16,7 @@ export const useAuthStore = create((set, get) => ({
     isCheckingAuth:true,
 	isUpdatingProfile: false, 
 	onlineUsers: [],
+	socket: null,
 
     signup: async(username, name, email, password) => {
         set({isLoading:true, error:null})
@@ -37,6 +38,7 @@ export const useAuthStore = create((set, get) => ({
 				error: null,
 				isLoading: false,
 			});
+			get().connectSocket();
 		} catch (error) {
 			set({ error: error.response?.data?.message || "Error logging in", isLoading: false });
 			throw error;
@@ -69,6 +71,7 @@ export const useAuthStore = create((set, get) => ({
 		try {
 			const response = await axios.get(`${API_URL}/check-auth`);
 			set({ user: response.data.user, isAuthenticated: true, isCheckingAuth: false });
+			get().connectSocket();
 		} catch (err) {
 			set({ error: null, isCheckingAuth: false, isAuthenticated: false });
 		}
@@ -114,25 +117,26 @@ export const useAuthStore = create((set, get) => ({
 		}
 	},
 	connectSocket: () => {
-    const { authUser } = get();
-    if (!authUser || get().socket?.connected) return;
 
-    const socket = io(API_URL, {
-      query: {
-        userId: authUser._id,
-      },
-    });
-    socket.connect();
+		const { user } = get();
+		if (!user || get().socket?.connected) return;
 
-    set({ socket: socket });
+		const socket = io("http://localhost:5000", {
+		query: {
+			user: user._id,
+		},
+		});
+		socket.connect();
 
-    socket.on("getOnlineUsers", (userIds) => {
-      set({ onlineUsers: userIds });
-    });
-  },
-  disconnectSocket: () => {
-    if (get().socket?.connected) get().socket.disconnect();
-  },
+		set({ socket: socket });
+
+		socket.on("getOnlineUsers", (user) => {
+		set({ onlineUsers: user });
+		});
+	},
+	disconnectSocket: () => {
+		if (get().socket?.connected) get().socket.disconnect();
+	},
 	
 	
 }))
