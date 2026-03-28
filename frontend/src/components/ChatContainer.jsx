@@ -52,15 +52,14 @@ const ChatContainer = () => {
           <div
             key={message._id}
             className={`chat ${message.senderId === user._id ? "chat-end" : "chat-start"}`}
-            ref={messageEndRef}
           >
             <div className=" chat-image avatar">
               <div className="size-10 rounded-full border">
                 <img
                   src={
                     message.senderId === user._id
-                      ? user.profilePic || "/avatar.png"
-                      : selectedUser.profilePic || "/avatar.png"
+                      ? (user.profilePic ? `http://localhost:5000${user.profilePic}` : "/avatar.png")
+                      : (selectedUser.profilePic ? `http://localhost:5000${selectedUser.profilePic}` : "/avatar.png")
                   }
                   alt="profile pic"
                 />
@@ -74,7 +73,7 @@ const ChatContainer = () => {
             <div className="chat-bubble flex flex-col">
               {message.image && (
                 <img
-                  src={message.image}
+                  src={`http://localhost:5000${message.image}`}
                   alt="Attachment"
                   className="sm:max-w-[200px] rounded-md mb-2"
                 />
@@ -83,6 +82,7 @@ const ChatContainer = () => {
             </div>
           </div>
         ))}
+        <div ref={messageEndRef}/>
       </div>
 
       <MessageInput />

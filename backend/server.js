@@ -13,13 +13,15 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import { dirname } from 'path';
 
+import { app, server } from "./lib/socket.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 
-const app = express();
 app.use(cookieParser());
 app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'))); 
 
 app.use(cors({
   origin:"http://localhost:5173",
@@ -36,7 +38,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/messages', messageRouter);
 
 connectDB(process.env.MONGO_URI).then(() => {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
     console.log(`App listening on port ${PORT}`);
     });
 

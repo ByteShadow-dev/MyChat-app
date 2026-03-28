@@ -2,7 +2,7 @@ import React from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { BubblesIcon, MessageCircleIcon } from 'lucide-react';
+import { BubblesIcon, MessageCircleIcon, UserIcon } from 'lucide-react';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -18,6 +18,12 @@ const Home = () => {
             <MessageCircleIcon/>
             Start chatting
           </button>
+
+          <button data-theme='forest' className='btn btn-outline font-mono' onClick={() => navigate('/search')}>
+            <UserIcon/>
+            Search Users
+          </button>
+          
         </div>
       </div>
     </div>

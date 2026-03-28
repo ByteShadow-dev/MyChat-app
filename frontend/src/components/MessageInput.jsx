@@ -47,6 +47,22 @@ const MessageInput = () => {
     }
   };
 
+  const handlePaste = (e) => {
+    const items = e.clipboardData.items;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+        break;
+      }
+    }
+  }   
+    
+
   return (
     <div className="p-4 w-full">
       {imagePreview && (
@@ -77,6 +93,7 @@ const MessageInput = () => {
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onPaste={handlePaste}
           />
           <input
             type="file"

@@ -5,6 +5,8 @@ import { generateTokenAndSetCookie } from '../utils/generateTokenAndSetCookie.js
 import { sendPasswordResetEmail, sendResetSuccessEmail, sendVerificationEmail } from '../mail-service/emails.js';
 import cloudinary from '../configs/cloudinary.js';
 import crypto from "crypto";
+import { saveImageLocally } from './imageController.js';
+
 
 import fs from 'fs';
 import path from 'path';
@@ -252,7 +254,7 @@ export const updateProfile = async (req, res) => {
     }
 }
 
-export const updateProfileLocal = async (req, res) => {
+export const updateProfileLocalOld = async (req, res) => {
     try {
         const { profilePic } = req.body;
         const userId = req.user._id;
@@ -291,6 +293,29 @@ export const updateProfileLocal = async (req, res) => {
 
     } catch (error) {
         console.log("Error in updateProfileLocal controller: ", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+export const updateProfileLocal = async (req, res) => {
+    try {
+        const { profilePic } = req.body;
+        const userId = req.user._id;
+
+        if (!profilePic) {
+            return res.status(400).json({ message: "Profile picture is required" });
+        }
+
+        const filePath = saveImageLocally(profilePic, userId.toString(), 'profile');
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { profilePic: filePath },
+            { new: true }
+        );
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        console.log("Error in updateProfileLocal: ", error);
         res.status(500).json({ message: "Internal server error" });
     }
 }

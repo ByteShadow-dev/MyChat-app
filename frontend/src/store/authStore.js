@@ -49,6 +49,7 @@ export const useAuthStore = create((set, get) => ({
 		set({ isLoading: true, error: null });
 		try {
 			await axios.post(`${API_URL}/logout`);
+			get().disconnectSocket();
 			set({ user: null, isAuthenticated: false, error: null, isLoading: false });
 		} catch (error) {
 			set({ error: "Error logging out", isLoading: false });
@@ -122,9 +123,9 @@ export const useAuthStore = create((set, get) => ({
 		if (!user || get().socket?.connected) return;
 
 		const socket = io("http://localhost:5000", {
-		query: {
-			user: user._id,
-		},
+			query: {
+				userId: user._id,  // ← was "user"
+			},
 		});
 		socket.connect();
 
