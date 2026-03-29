@@ -6,8 +6,13 @@ import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useAuthStore } from "../store/authStore";
 import { formatMessageTime } from "../lib/utils";
+import { useNavigate } from "react-router-dom";
+
 
 const ChatContainer = () => {
+
+  const navigate = useNavigate();
+
   const {
     messages,
     getMessages,

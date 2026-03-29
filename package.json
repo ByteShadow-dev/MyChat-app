@@ -1,0 +1,24 @@
+{
+  "name": "freddyboy-auth-stack",
+  "version": "1.0.0",
+  "description": "A full-stack, real-time chat application built with the MERN stack (MongoDB, Express, React, Node.js). This project is designed not just as a messaging app, but as a modular foundation to be extended into a fully-featured social media platform.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "start": "npm run start --prefix backend"
+
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jfreddin/MyChat-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jfreddin/MyChat-app/issues"
+  },
+  "homepage": "https://github.com/jfreddin/MyChat-app#readme"
+}

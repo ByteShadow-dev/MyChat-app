@@ -1,5 +1,5 @@
 import express from "express";
-import { forgotPassword, login, logout, resetPassword, signup, verifyEmail, checkAuth, updateProfile, updateProfileLocal } from "../controllers/userControllers.js";
+import { forgotPassword, login, logout, resetPassword, signup, verifyEmail, checkAuth, updateProfile, updateProfileLocal, getUserById } from "../controllers/userControllers.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 
 const router = express.Router();
@@ -19,5 +19,7 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);
 
 router.put('/update-profile', verifyToken, updateProfileLocal);
+
+router.get('/user/:id', verifyToken, getUserById);
 
 export default router;

@@ -12,6 +12,8 @@ import { useEffect } from "react";
 import Chat from "./pages/Chat";
 import Profile from './pages/Profile';
 import { useThemeStore } from './store/themeStore';
+import Search from './pages/Search';
+import UserProfile from './pages/UserProfile';
 // protect routes;
 
 const ProtectedRoute = ({children}) => {
@@ -79,6 +81,12 @@ function App() {
         </Route>
         <Route path='/profile' element={<ProtectedRoute>
           <Profile/>
+        </ProtectedRoute>}></Route>
+        <Route path='/user/:userId' element={<ProtectedRoute>
+          <UserProfile/>
+        </ProtectedRoute>}></Route>
+        <Route path='/search' element={<ProtectedRoute>
+          <Search/>
         </ProtectedRoute>}></Route>
         <Route path='/settings' element={<Settings/>}/>
       </Routes>
