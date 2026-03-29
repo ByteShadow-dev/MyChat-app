@@ -4,8 +4,9 @@ import { axiosInstance } from '../lib/axios.js'
 import toast from 'react-hot-toast'
 import { io } from "socket.io-client";
 
-const API_URL = 'http://localhost:5000/api/auth';
-
+// At the top of the file, replace the hardcoded API_URL:
+const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5000" : "";
+const API_URL = `${BASE_URL}/api/auth`;
 axios.defaults.withCredentials = true;
 
 export const useAuthStore = create((set, get) => ({
@@ -122,7 +123,7 @@ export const useAuthStore = create((set, get) => ({
 		const { user } = get();
 		if (!user || get().socket?.connected) return;
 
-		const socket = io("http://localhost:5000", {
+		const socket = io(BASE_URL, {
 			query: {
 				userId: user._id,  // ← was "user"
 			},
