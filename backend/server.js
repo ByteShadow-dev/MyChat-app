@@ -5,6 +5,9 @@ import cookieParser from 'cookie-parser';
 
 import authRouter from './routes/authApi.js';
 import messageRouter from './routes/messageApi.js';
+import libraryRouter from './routes/libraryApi.js';
+import gamesRouter from './routes/gamesApi.js';
+import searchRouter from './routes/searchAPI.js'
 
 import cors from 'cors';
 import { connectDB } from './configs/mongodb.js';
@@ -36,6 +39,10 @@ const PORT = process.env.PORT || 5001;
 
 app.use('/api/auth', authRouter);
 app.use('/api/messages', messageRouter);
+
+app.use('/api/library', libraryRouter);
+app.use('/api/games', gamesRouter);
+app.use('/api/search', searchRouter);
 
 if(process.env.NODE_ENV === "production"){
   app.use(express.static(path.join(__dirname, "../frontend/dist")));

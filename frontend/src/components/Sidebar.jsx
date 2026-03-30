@@ -5,20 +5,20 @@ import SidebarSkeleton from "./skeletons/SidebarSkeleton.jsx";
 import { Users } from "lucide-react";
 
 const Sidebar = () => {
-  const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } = useChatStore();
+  const { getFriends, friends, selectedUser, setSelectedUser, isFriendsLoading } = useChatStore();
 
   const { onlineUsers } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
   useEffect(() => {
-    getUsers();
-  }, [getUsers]);
+    getFriends();
+  }, [getFriends]);
 
   const filteredUsers = showOnlineOnly
-    ? users.filter((user) => onlineUsers.includes(user._id))
-    : users;
+    ? friends.filter((user) => onlineUsers.includes(user._id))
+    : friends;
 
-  if (isUsersLoading) return <SidebarSkeleton />;
+  if (isFriendsLoading) return <SidebarSkeleton />;
 
   return (
     <aside className="h-full w-20 lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200 relative group">

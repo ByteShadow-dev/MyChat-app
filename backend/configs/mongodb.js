@@ -5,6 +5,9 @@ import mongoose from 'mongoose';
 export const connectDB = async (connectionString) => {
     try {
         await mongoose.connect(connectionString, {
+           // serverSelectionTimeoutMS: 5000,
+            //tls: true,
+            //tlsAllowInvalidCertificates: true,
         });
         console.log('Connected to MongoDB');
     }

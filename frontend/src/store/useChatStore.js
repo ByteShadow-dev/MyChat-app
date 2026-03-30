@@ -6,30 +6,180 @@ import { useAuthStore } from './authStore';
 export const useChatStore = create((set, get) => ({
     messages: [],
     users: [],
+    friends: [],
+    suggestedSearch: [],
+    searchedUsers: [],
+    requestsSent: [],
+    requestsInbox: [],
     selectedUser: null,
     isUsersLoading: false,
+    isFriendsLoading: false,
+    isSuggestedSearchLoading: false,
+    isSearchedUsersLoading: false,
+    isRequestsSentLoading: false,
+    isRequestsInboxLoading: false,
     isMessagesLoading: false,
+    requestsIgnored: [],
+    isRequestsIgnoredLoading: false,
+    profileUserFriends: [],
+    isProfileUserFriendsLoading: false,
+
+    getProfileUserFriends: async (userId) => {
+        set({ isProfileUserFriendsLoading: true });
+        try {
+            const res = await axiosInstance.get(`/auth/user/${userId}/friends`);
+            set({ profileUserFriends: Array.isArray(res.data) ? res.data : [] });
+        } catch (error) {
+            toast.error(error.response?.data?.message);
+        } finally {
+            set({ isProfileUserFriendsLoading: false });
+        }
+    },
+
+    getRequestsIgnored: async () => {
+        set({ isRequestsIgnoredLoading: true });
+        try {
+            const res = await axiosInstance.get('/auth/friends/ignored');
+            set({ requestsIgnored: Array.isArray(res.data) ? res.data : [] });
+        } catch (error) {
+            toast.error(error.response?.data?.message);
+        } finally {
+            set({ isRequestsIgnoredLoading: false });
+        }
+    },
+
+    ignoreFriendRequest: async (userId) => {
+        try {
+            await axiosInstance.put(`/auth/friends/ignore/${userId}`);
+            const ignored = get().requestsInbox.find(u => u._id === userId);
+            set({
+                requestsInbox: get().requestsInbox.filter(u => u._id !== userId),
+                requestsIgnored: [...get().requestsIgnored, ignored],
+            });
+            toast.success("Request ignored");
+        } catch (error) {
+            toast.error(error.response?.data?.message);
+        }
+    },
+
+    getFriends: async () => {
+        set({ isFriendsLoading: true });
+        try {
+            const res = await axiosInstance.get('/auth/friends');
+            set({ friends: res.data });
+        } catch (error) {
+            toast.error(error.response.data.message);
+        } finally {
+            set({ isFriendsLoading: false });
+        }
+    },
+
+    getRequestsInbox: async () => {
+        set({ isRequestsInboxLoading: true });
+        try {
+            const res = await axiosInstance.get('/auth/friends/inbox');
+            set({ requestsInbox: res.data });
+        } catch (error) {
+            toast.error(error.response?.data?.message);
+        } finally {
+            set({ isRequestsInboxLoading: false });
+        }
+    },
+
+    getRequestsSent: async () => {
+        set({ isRequestsSentLoading: true });
+        try {
+            const res = await axiosInstance.get('/auth/friends/sent');
+            set({ requestsSent: res.data });
+        } catch (error) {
+            toast.error(error.response?.data?.message);
+        } finally {
+            set({ isRequestsSentLoading: false });
+        }
+    },
+
+    getSearchedUsers: async (query) => {
+        set({ isSearchedUsersLoading: true });
+        try {
+            const res = await axiosInstance.get(`/search/search?query=${query}`);
+            set({ searchedUsers: res.data });
+        } catch (error) {
+            toast.error(error.response.data.message);
+        } finally {
+            set({ isSearchedUsersLoading: false });
+        }
+    },
+
+    
+
+    sendFriendRequest: async (userId) => {
+        try {
+            await axiosInstance.put(`/auth/friends/send/${userId}`);
+            // add to requestsSent locally so UI updates instantly
+            set({ requestsSent: [...get().requestsSent, { _id: userId }] });
+            toast.success("Friend request sent!");
+        } catch (error) {
+            toast.error(error.response?.data?.message);
+        }
+    },
+
+    acceptFriendRequest: async (userId) => {
+        try {
+            await axiosInstance.put(`/auth/friends/accept/${userId}`);
+            // move from inbox to friends locally
+            const acceptedUser = get().requestsInbox.find(u => u._id === userId);
+            set({
+                friends: [...get().friends, acceptedUser],
+                requestsInbox: get().requestsInbox.filter(u => u._id !== userId),
+            });
+            toast.success("Friend request accepted!");
+        } catch (error) {
+            toast.error(error.response?.data?.message);
+        }
+    },
+
+    removeFriend: async (userId) => {
+        try {
+            await axiosInstance.delete(`/auth/friends/remove/${userId}`);
+            set({ friends: get().friends.filter(f => f._id !== userId) });
+            toast.success("Friend removed");
+        } catch (error) {
+            toast.error(error.response?.data?.message);
+        }
+    },
+
+    getSuggestedSearch: async () => {
+        set({ isSuggestedSearchLoading: true });
+        try {
+            const res = await axiosInstance.get('/messages/users');
+            set({ suggestedSearch: res.data });
+        } catch (error) {
+            toast.error(error.response.data.message);
+        } finally {
+            set({ isSuggestedSearchLoading: false });
+        }
+    },
 
     getUsers: async () => {
         set({ isUsersLoading: true });
-        try{
+        try {
             const res = await axiosInstance.get('/messages/users');
             set({ users: res.data });
-        }catch(error){
+        } catch (error) {
             toast.error(error.response.data.message);
-        }finally{
-            set({ isUsersLoading: false});
+        } finally {
+            set({ isUsersLoading: false });
         }
     },
 
     getMessages: async (userId) => {
         set({ isMessagesLoading: true });
-        try{
+        try {
             const res = await axiosInstance.get(`/messages/${userId}`);
             set({ messages: res.data });
-        }catch(error){
+        } catch (error) {
             toast.error(error.response.data.message);
-        }finally{
+        } finally {
             set({ isMessagesLoading: false });
         }
     },
@@ -37,26 +187,21 @@ export const useChatStore = create((set, get) => ({
     sendMessage: async (messageData) => {
         const { selectedUser, messages } = get();
         try {
-        const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-        set({ messages: [...messages, res.data] });
+            const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
+            set({ messages: [...messages, res.data] });
         } catch (error) {
-        toast.error(error.response.data.message);
+            toast.error(error.response.data.message);
         }
-    },    
+    },
 
     subscribeToMessages: () => {
         const { selectedUser } = get();
         if (!selectedUser) return;
-
         const socket = useAuthStore.getState().socket;
-
         socket.on("newMessage", (newMessage) => {
-        const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
-        if (!isMessageSentFromSelectedUser) return;
-
-        set({
-            messages: [...get().messages, newMessage],
-        });
+            const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
+            if (!isMessageSentFromSelectedUser) return;
+            set({ messages: [...get().messages, newMessage] });
         });
     },
 
@@ -66,5 +211,4 @@ export const useChatStore = create((set, get) => ({
     },
 
     setSelectedUser: (selectedUser) => set({ selectedUser }),
-
 }))

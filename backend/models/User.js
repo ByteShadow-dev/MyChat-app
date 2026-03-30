@@ -28,8 +28,26 @@ const userSchema = new mongoose.Schema({
     },
     isVerified: {
         type: Boolean,
+        default: true
+    },
+
+    isPrivate: {
+        type: Boolean,
         default: false
     },
+
+    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "users" }],
+        
+    friendRequestsSent: [{ type: mongoose.Schema.Types.ObjectId, ref: "users" }],
+
+    friendRequestsReceived: [{ type: mongoose.Schema.Types.ObjectId, ref: "users" }],
+
+    friendRequestsIgnored: [{ type: mongoose.Schema.Types.ObjectId, ref: "users" }],
+
+    libraryGames: [{ type: mongoose.Schema.Types.ObjectId, ref: "Game" }],
+
+    installedGames: [{ type: mongoose.Schema.Types.ObjectId, ref: "Game" }],
+
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,
     verificationToken: String,

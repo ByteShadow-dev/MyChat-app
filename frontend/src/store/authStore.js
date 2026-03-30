@@ -19,6 +19,16 @@ export const useAuthStore = create((set, get) => ({
 	onlineUsers: [],
 	socket: null,
 
+	changePrivacy: async (isPrivate) => {
+		try {
+			const res = await axiosInstance.put("/auth/user/privacy", { isPrivate });
+			set({ user: res.data.user });
+			toast.success(res.data.message);
+		} catch (error) {
+			toast.error(error.response?.data?.message || "Error changing privacy");
+		}
+	},
+
     signup: async(username, name, email, password) => {
         set({isLoading:true, error:null})
         try{
