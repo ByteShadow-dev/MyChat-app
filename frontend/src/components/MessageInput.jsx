@@ -7,7 +7,9 @@ const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
-  const { sendMessage } = useChatStore();
+  const { sendMessage, emitTyping, emitStopTyping, selectedUser } = useChatStore();
+  const typingTimeoutRef = useRef(null);  
+  
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -31,6 +33,8 @@ const MessageInput = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview) return;
+    emitStopTyping(selectedUser._id);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     try {
       await sendMessage({
@@ -92,7 +96,14 @@ const MessageInput = () => {
             className="w-full input input-bordered rounded-lg input-sm sm:input-md"
             placeholder="Type a message..."
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+                setText(e.target.value);
+                emitTyping(selectedUser._id);
+                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = setTimeout(() => {
+                    emitStopTyping(selectedUser._id);
+                }, 1500);
+            }}
             onPaste={handlePaste}
           />
           <input

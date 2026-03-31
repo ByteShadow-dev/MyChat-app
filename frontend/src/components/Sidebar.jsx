@@ -13,6 +13,7 @@ const Sidebar = () => {
     isFriendsLoading,
     unreadMessages,
     clearUnread,
+    typingUsers, 
   } = useChatStore();
 
   const { onlineUsers } = useAuthStore();
@@ -57,7 +58,10 @@ const Sidebar = () => {
         <div className={`${showName ? "flex" : "hidden lg:flex"} flex-1 text-left min-w-0 flex-col`}>
           <div className="font-medium truncate">{user.name}</div>
           <div className="text-sm text-zinc-400">
-            {onlineUsers.includes(user._id) ? "Online" : "Offline"}
+              {typingUsers[user._id] 
+                  ? <span className="text-primary animate-pulse">typing...</span>
+                  : onlineUsers.includes(user._id) ? "Online" : "Offline"
+              }
           </div>
         </div>
 

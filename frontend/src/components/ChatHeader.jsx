@@ -4,7 +4,7 @@ import { useChatStore } from "../store/useChatStore.js";
 import { Link } from "react-router-dom";
 
 const ChatHeader = () => {
-  const { selectedUser, setSelectedUser } = useChatStore();
+  const { selectedUser, setSelectedUser, typingUsers } = useChatStore();
   const { onlineUsers } = useAuthStore();
 
   const timeStampDisplay = (timestamp) =>{
@@ -34,16 +34,23 @@ const ChatHeader = () => {
             <Link to={`/user/${selectedUser._id}`}>
               <h3 className="font-medium">{selectedUser.name}</h3>
             </Link>
-            {onlineUsers.includes(selectedUser._id) ? 
-            <p className="text-sm text-green-400">
-              Online
-            </p> : 
-            <div>
-            <p className="text-sm text-base-content/70">
-              Offline <p className="text-xs text-base-content/50">{` Last Seen on ${timeStampDisplay(selectedUser.lastLogin)}` }</p>
-              
-            </p>
-            </div>} 
+            
+            {typingUsers[selectedUser._id] ? (
+              <p className="text-sm text-primary animate-pulse">
+                typing...
+              </p>
+            ) : onlineUsers.includes(selectedUser._id) ? (
+              <p className="text-sm text-green-400">
+                Online
+              </p>
+            ) : (
+              <div className="flex flex-col">
+                <p className="text-sm text-base-content/70">Offline</p>
+                <p className="text-xs text-base-content/50">
+                  {`Last Seen on ${timeStampDisplay(selectedUser.lastLogin)}`}
+                </p>
+              </div>
+            )}
 
           </div>
         </div>

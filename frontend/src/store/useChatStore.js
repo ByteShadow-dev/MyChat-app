@@ -24,11 +24,22 @@ export const useChatStore = create((set, get) => ({
     profileUserFriends: [],
     isProfileUserFriendsLoading: false,
     unreadMessages: {}, // { userId: true/false }
+    typingUsers: {}, // { userId: true/false }
 
     clearUnread: (userId) => {
         set((state) => ({
             unreadMessages: { ...state.unreadMessages, [userId]: false }
         }));
+    },
+
+    emitTyping: (receiverId) => {
+        const socket = useAuthStore.getState().socket;
+        if (socket) socket.emit("typing", { receiverId });
+    },
+
+    emitStopTyping: (receiverId) => {
+        const socket = useAuthStore.getState().socket;
+        if (socket) socket.emit("stopTyping", { receiverId });
     },
 
     getProfileUserFriends: async (userId) => {
@@ -303,6 +314,21 @@ export const useChatStore = create((set, get) => ({
         if (!socket) return;
 
         socket.off("newMessage");
+
+        socket.off("typing");
+        socket.off("stopTyping");
+
+        socket.on("typing", ({ senderId }) => {
+            set((state) => ({
+                typingUsers: { ...state.typingUsers, [senderId]: true }
+            }));
+        });
+
+        socket.on("stopTyping", ({ senderId }) => {
+            set((state) => ({
+                typingUsers: { ...state.typingUsers, [senderId]: false }
+            }));
+        });
 
         socket.on("newMessage", (newMessage) => {
             const selectedUser = get().selectedUser;
