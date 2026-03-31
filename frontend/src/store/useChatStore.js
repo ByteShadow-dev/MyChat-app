@@ -72,7 +72,7 @@ export const useChatStore = create((set, get) => ({
     getFriendsForSidebar: async () => {
 		set({ isFriendsLoading: true });
 		try {
-			const res = await axiosInstance.get("/messages/users"); // Adjust route if needed
+			const res = await axiosInstance.get("/messages/users/sidebar"); // Adjust route if needed
 			
 			// Sort the array: Newest timestamps move to the top (index 0)
 			const sortedFriends = res.data.sort((a, b) => {
@@ -176,7 +176,7 @@ export const useChatStore = create((set, get) => ({
     getSuggestedSearch: async () => {
         set({ isSuggestedSearchLoading: true });
         try {
-            const res = await axiosInstance.get('/messages/users');
+            const res = await axiosInstance.get('/messages/users/all');
             set({ suggestedSearch: res.data });
         } catch (error) {
             toast.error(error.response.data.message);
