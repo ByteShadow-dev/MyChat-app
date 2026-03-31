@@ -4,12 +4,13 @@ import { Mail, User, AtSign, UserMinus, Lock, Camera } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/authStore";
+import ConfirmModal from "../components/ConfirmModal.jsx";
 
 const UserProfilePage = () => {
   const navigate = useNavigate();
   // Extracted isUpdatingProfile from useAuthStore
-  const { user, updateProfile, isUpdatingProfile } = useAuthStore();
-
+  const { user, updateProfile, isUpdatingProfile, changePrivacy } = useAuthStore();
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, friendId: null, friendName: "" }); // states for confirm user removal box
   const [selectedImg, setSelectedImg] = useState(null);
 
   const handleImageUpload = async (e) => {
@@ -35,6 +36,20 @@ const UserProfilePage = () => {
     isProfileUserFriendsLoading,
     getProfileUserFriends,
   } = useChatStore();
+
+  const handleRemoveClick = (friendId, friendName) => {
+    setConfirmModal({isOpen: true, friendId: friendId, friendName:friendName});
+  }
+
+  const handleConfirmRemove = async () => {
+    await removeFriend(confirmModal.friendId);
+    getProfileUserFriends(user._id);
+    setConfirmModal({isOpen: false, friendId:null, friendName:""})
+  }
+
+  const handleCancelRemove = () => {
+    setConfirmModal({isOpen: false, friendId: null, friendName:""});
+  }
 
   useEffect(() => {
     if (!user?._id) return;
@@ -137,6 +152,20 @@ const UserProfilePage = () => {
                   <span>Account Status</span>
                   <span className="text-green-500">Active</span>
                 </div>
+                <div className="flex items-center justify-between py-2 border-t border-zinc-700">
+                <span>Account Privacy</span>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <span className="text-xs text-base-content/50">
+                            {user.isPrivate ? "Private" : "Public"}
+                        </span>
+                        <input
+                            type="checkbox"
+                            className="toggle toggle-sm toggle-primary"
+                            checked={user.isPrivate || false}
+                            onChange={(e) => changePrivacy(e.target.checked)}
+                        />
+                    </label>
+                </div>
               </div>
             </div>
           </div>
@@ -183,7 +212,7 @@ const UserProfilePage = () => {
                     </div>
                     <button
                       className="btn btn-error btn-xs shrink-0"
-                      onClick={() => removeFriend(friend._id)}
+                      onClick={() => handleRemoveClick(friend._id, friend.name)}
                     >
                       <UserMinus className="size-3" />
                       Remove
@@ -196,6 +225,12 @@ const UserProfilePage = () => {
 
         </div>
       </div>
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        friendName={confirmModal.friendName}
+        onConfirm={handleConfirmRemove}
+        onCancel={handleCancelRemove}
+      />
     </div>
   );
 };

@@ -6,7 +6,7 @@ import { sendPasswordResetEmail, sendResetSuccessEmail, sendVerificationEmail } 
 import cloudinary from '../configs/cloudinary.js';
 import crypto from "crypto";
 import { saveImageLocally } from './imageController.js';
-
+import { getReceiverSocketId, io } from "../lib/socket.js";
 
 import fs from 'fs';
 import path from 'path';
@@ -24,8 +24,12 @@ export const getUserById = async (req, res) => {
         );
         const isSelf = req.user._id.toString() === req.params.id.toString();
 
+        if (!isSelf && !isFriend && searchedUser.isPrivate) {
+            return res.status(403).json({ message: "This account is private", isPrivate: true });
+        }
         if (isSelf || isFriend || !searchedUser.isPrivate) {
             res.status(200).json(searchedUser);
+
         } else {
             res.status(401).json({ message: "Unauthorized, requested account is private" });
         }
@@ -406,6 +410,14 @@ export const sendFriendRequest = async (req, res) => {
 
         await sender.save();
         await receiver.save();
+        // after await sender.save(); await receiver.save();
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("friendRequest", {
+                ...sender.toObject(),
+                password: undefined
+            });
+        }
 
         res.status(200).json({ message: "Friend request sent successfully" });
 

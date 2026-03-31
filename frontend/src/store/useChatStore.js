@@ -329,5 +329,11 @@ export const useChatStore = create((set, get) => ({
                 return { friends: updatedFriends };
             });
         });
+
+        socket.on("friendRequest", (senderUser) => {
+            set((state) => ({
+                requestsInbox: [...state.requestsInbox, senderUser]
+            }));
+        });
     },
 }))

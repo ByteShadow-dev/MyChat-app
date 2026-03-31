@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import { axiosInstance } from "../lib/axios";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/authStore";
+import ConfirmModal from "../components/ConfirmModal";
 
 const UserProfilePage = () => {
   const { userId } = useParams();
@@ -12,6 +13,24 @@ const UserProfilePage = () => {
   const { user: loggedInUser } = useAuthStore();
   const [profileUser, setProfileUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPrivate, setIsPrivate] = useState(false);
+
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, friendId: null, friendName: "" }); // states for confirm user removal box
+
+  const fetchUser = async () => {
+    try {
+        const res = await axiosInstance.get(`/auth/user/${userId}`);
+        setProfileUser(res.data);
+    } catch (error) {
+        if (error.response?.data?.isPrivate) {
+            setIsPrivate(true); // ← catch private specifically
+        }
+        console.log("Error fetching user: ", error);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+  
 
   const {
     friends,
@@ -35,6 +54,7 @@ const UserProfilePage = () => {
     getRequestsSent();
     getRequestsInbox();
     getProfileUserFriends(userId);
+    fetchUser();
   }, [userId]);
 
   useEffect(() => {
@@ -61,6 +81,20 @@ const UserProfilePage = () => {
     navigate('/chats');
   };
 
+  const handleRemoveClick = (friendId, friendName) => {
+    setConfirmModal({isOpen: true, friendId: friendId, friendName:friendName});
+  }
+
+  const handleConfirmRemove = async () => {
+    await removeFriend(confirmModal.friendId);
+    getProfileUserFriends(profileUser._id);
+    setConfirmModal({isOpen: false, friendId:null, friendName:""})
+  }
+
+  const handleCancelRemove = () => {
+    setConfirmModal({isOpen: false, friendId: null, friendName:""});
+  }
+
   if (isLoading) return (
     <div>
       <Navbar />
@@ -72,10 +106,18 @@ const UserProfilePage = () => {
 
   if (!profileUser) return (
     <div>
-      <Navbar />
-      <div className="h-screen flex items-center justify-center">
-        <p className="text-zinc-400">User not found.</p>
-      </div>
+        <Navbar />
+        <div className="h-screen flex items-center justify-center">
+            {isPrivate ? (
+                <div className="flex flex-col items-center gap-3 text-base-content/50">
+                    <Lock className="size-12" />
+                    <p className="text-lg font-medium">This account is private</p>
+                    <p className="text-sm">Send a friend request to view this profile.</p>
+                </div>
+            ) : (
+                <p className="text-zinc-400">User not found.</p>
+            )}
+        </div>
     </div>
   );
 
@@ -110,7 +152,7 @@ const UserProfilePage = () => {
                     </button>
                     <button
                       className="btn btn-error btn-sm flex-1"
-                      onClick={() => removeFriend(userId)}
+                      onClick={() => handleRemoveClick(profileUser._id, profileUser.name)}
                     >
                       <UserMinus className="size-4" />
                       Remove
@@ -187,33 +229,35 @@ const UserProfilePage = () => {
           <div className="bg-base-300 rounded-xl p-6 space-y-4">
             <h2 className="text-lg font-semibold">
               Friends
-              {isFriend && (
+              {(isFriend || !profileUser.isPrivate) && (
                 <span className="text-base-content/50 text-sm font-normal ml-2">
                   ({profileUserFriends.length})
                 </span>
               )}
             </h2>
 
-            {/* Not a friend — show private message */}
-            {!isFriend && (
+            {/* Not a friend and private — show lock message */}
+            {!isFriend && profileUser.isPrivate && (
               <div className="flex flex-col items-center gap-2 py-6 text-base-content/50">
                 <Lock className="size-8" />
                 <p className="text-sm">Add this user as a friend to see their friends list.</p>
               </div>
             )}
 
-            {/* Is a friend — show friends list */}
-            {isFriend && isProfileUserFriendsLoading && (
+            {/* Loading */}
+            {(isFriend || !profileUser.isPrivate) && isProfileUserFriendsLoading && (
               <div className="flex justify-center py-4">
                 <span className="loading loading-spinner" />
               </div>
             )}
 
-            {isFriend && !isProfileUserFriendsLoading && profileUserFriends.length === 0 && (
+            {/* Empty */}
+            {(isFriend || !profileUser.isPrivate) && !isProfileUserFriendsLoading && profileUserFriends.length === 0 && (
               <p className="text-base-content/50 text-sm">No friends yet.</p>
             )}
 
-            {isFriend && !isProfileUserFriendsLoading && (
+            {/* List */}
+            {(isFriend || !profileUser.isPrivate) && !isProfileUserFriendsLoading && (
               <div className="space-y-2">
                 {profileUserFriends.map((friend) => (
                   <div
@@ -242,6 +286,12 @@ const UserProfilePage = () => {
 
         </div>
       </div>
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        friendName={confirmModal.friendName}
+        onConfirm={handleConfirmRemove}
+        onCancel={handleCancelRemove}
+      />
     </div>
   );
 };
