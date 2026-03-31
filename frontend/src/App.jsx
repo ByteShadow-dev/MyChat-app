@@ -14,6 +14,7 @@ import Profile from './pages/Profile';
 import { useThemeStore } from './store/themeStore';
 import Search from './pages/Search';
 import UserProfile from './pages/UserProfile';
+import { useChatStore } from './store/useChatStore';
 // protect routes;
 
 const ProtectedRoute = ({children}) => {
@@ -42,7 +43,21 @@ const RedirectAuthenticatedUser = ({children}) => {
 
 
 function App() {
-  const {checkAuth, isAuthenticated, user} = useAuthStore();
+  const { checkAuth, isAuthenticated, user } = useAuthStore();
+  const { subscribeToGlobalMessages, getFriendsForSidebar } = useChatStore();
+
+  useEffect(() => {
+      checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+      if (!isAuthenticated || !user) return;
+      const timer = setTimeout(() => {
+          subscribeToGlobalMessages();
+          getFriendsForSidebar();
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [isAuthenticated, user]);
 
 
   useEffect(() => {

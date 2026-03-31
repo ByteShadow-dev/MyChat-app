@@ -4,6 +4,39 @@ import cloudinary from '../configs/cloudinary.js'
 import { getReceiverSocketId, io } from "../lib/socket.js";
 import { saveImageLocally } from './imageController.js';
 
+export const getUsersForSidebar = async (req, res) => {
+    try {
+        const loggedInUserId = req.user._id;
+
+        // 1. Fetch the users (adjust this if you have a specific 'friends' array logic)
+        const loggedInUser = await User.findById(loggedInUserId);
+        const users = await User.find({ 
+            _id: { $in: loggedInUser.friends } 
+        }).select("-password");
+
+        // 2. Map through each user to find the latest message between you two
+        const usersWithLastMessage = await Promise.all(users.map(async (user) => {
+            const lastMessage = await Message.findOne({
+                $or: [
+                    { senderId: loggedInUserId, receiverId: user._id },
+                    { senderId: user._id, receiverId: loggedInUserId }
+                ]
+            }).sort({ createdAt: -1 }); // Sort by newest first
+
+            return {
+                ...user.toObject(),
+                // If there's a message, attach its time. If not, default to 0 so they drop to the bottom.
+                lastMessageTime: lastMessage ? lastMessage.createdAt : new Date(0), 
+            };
+        }));
+
+        // 3. Send the modified array back to the frontend
+        res.status(200).json(usersWithLastMessage);
+    } catch (error) {
+        console.error("Error in getUsersForSidebar: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
 
 export const getAllUsers = async (req, res) => {
     try{

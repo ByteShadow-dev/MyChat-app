@@ -23,6 +23,13 @@ export const useChatStore = create((set, get) => ({
     isRequestsIgnoredLoading: false,
     profileUserFriends: [],
     isProfileUserFriendsLoading: false,
+    unreadMessages: {}, // { userId: true/false }
+
+    clearUnread: (userId) => {
+        set((state) => ({
+            unreadMessages: { ...state.unreadMessages, [userId]: false }
+        }));
+    },
 
     getProfileUserFriends: async (userId) => {
         set({ isProfileUserFriendsLoading: true });
@@ -61,6 +68,24 @@ export const useChatStore = create((set, get) => ({
             toast.error(error.response?.data?.message);
         }
     },
+
+    getFriendsForSidebar: async () => {
+		set({ isFriendsLoading: true });
+		try {
+			const res = await axiosInstance.get("/messages/users"); // Adjust route if needed
+			
+			// Sort the array: Newest timestamps move to the top (index 0)
+			const sortedFriends = res.data.sort((a, b) => {
+				return new Date(b.lastMessageTime) - new Date(a.lastMessageTime);
+			});
+
+			set({ friends: sortedFriends });
+		} catch (error) {
+			toast.error(error.response.data.message);
+		} finally {
+			set({ isFriendsLoading: false });
+		}
+	},
 
     getFriends: async () => {
         set({ isFriendsLoading: true });
@@ -185,16 +210,30 @@ export const useChatStore = create((set, get) => ({
     },
 
     sendMessage: async (messageData) => {
-        const { selectedUser, messages } = get();
-        try {
-            const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-            set({ messages: [...messages, res.data] });
-        } catch (error) {
-            toast.error(error.response.data.message);
-        }
-    },
+		const { selectedUser, messages } = get();
+		try {
+			const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
+			set({ messages: [...messages, res.data] });
 
-    subscribeToMessages: () => {
+			// NEW: Bump the person you just texted to the top
+			set((state) => {
+				const updatedFriends = state.friends.map((friend) => {
+					if (friend._id === selectedUser._id) {
+						return { ...friend, lastMessageTime: res.data.createdAt };
+					}
+					return friend;
+				});
+
+				updatedFriends.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+				return { friends: updatedFriends };
+			});
+
+		} catch (error) {
+			toast.error(error.response.data.message);
+		}
+	},
+
+    /* subscribeToMessages: () => {
         const { selectedUser } = get();
         if (!selectedUser) return;
         const socket = useAuthStore.getState().socket;
@@ -203,6 +242,42 @@ export const useChatStore = create((set, get) => ({
             if (!isMessageSentFromSelectedUser) return;
             set({ messages: [...get().messages, newMessage] });
         });
+    }, */
+
+    subscribeToMessages: () => {
+        const { selectedUser } = get();
+        if (!selectedUser) return;
+
+        const socket = useAuthStore.getState().socket;
+
+        socket.on("newMessage", (newMessage) => {
+            const isFromSelectedUser = newMessage.senderId === selectedUser._id;
+
+            if (isFromSelectedUser) {
+                // Chat is open — add to messages normally
+                set({ messages: [...get().messages, newMessage] });
+            } else {
+                // Chat is not open — mark as unread
+                set((state) => ({
+                    unreadMessages: { 
+                        ...state.unreadMessages, 
+                        [newMessage.senderId]: true 
+                    }
+                }));
+            }
+
+            // Bump friend to top of sidebar
+            set((state) => {
+                const updatedFriends = state.friends.map((friend) => {
+                    if (friend._id === newMessage.senderId || friend._id === newMessage.receiverId) {
+                        return { ...friend, lastMessageTime: newMessage.createdAt };
+                    }
+                    return friend;
+                });
+                updatedFriends.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+                return { friends: updatedFriends };
+            });
+        });
     },
 
     unsubscribeFromMessages: () => {
@@ -210,5 +285,49 @@ export const useChatStore = create((set, get) => ({
         socket.off("newMessage");
     },
 
-    setSelectedUser: (selectedUser) => set({ selectedUser }),
+    setSelectedUser: (selectedUser) => {
+        set({ selectedUser });
+        
+        // When a user is selected (chat opened), clear their unread badge
+        if (selectedUser) {
+            set((state) => ({
+                friends: state.friends.map(friend => 
+                    friend._id === selectedUser._id ? { ...friend, unread: false } : friend
+                )
+            }));
+        }
+    },
+
+    subscribeToGlobalMessages: () => {
+        const socket = useAuthStore.getState().socket;
+        if (!socket) return;
+
+        socket.off("newMessage");
+
+        socket.on("newMessage", (newMessage) => {
+            const selectedUser = get().selectedUser;
+
+            // Only mark unread if this isn't the currently open chat
+            if (!selectedUser || newMessage.senderId !== selectedUser._id) {
+                set((state) => ({
+                    unreadMessages: {
+                        ...state.unreadMessages,
+                        [newMessage.senderId]: true,
+                    }
+                }));
+            }
+
+            // Always bump sender to top of sidebar
+            set((state) => {
+                const updatedFriends = state.friends.map((friend) => {
+                    if (friend._id === newMessage.senderId || friend._id === newMessage.receiverId) {
+                        return { ...friend, lastMessageTime: newMessage.createdAt };
+                    }
+                    return friend;
+                });
+                updatedFriends.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+                return { friends: updatedFriends };
+            });
+        });
+    },
 }))
