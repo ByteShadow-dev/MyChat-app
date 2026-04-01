@@ -8,6 +8,7 @@ import ImageViewer from "./ImageViewer";
 import DragDropOverlay from "./DragDropOverlay";
 import { useAuthStore } from "../store/authStore";
 import { formatMessageTime } from "../lib/utils";
+import { MoreVertical, Edit2, Trash2, X, Check } from "lucide-react";
 
 const BASE_URL = "http://localhost:5000";
 const CONTINUOUS_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
@@ -23,6 +24,9 @@ const ChatContainer = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [droppedFile, setDroppedFile] = useState(null);
+
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editMessageText, setEditMessageText] = useState("");
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -40,9 +44,29 @@ const ChatContainer = () => {
     selectedUser,
     subscribeToMessages,
     unsubscribeFromMessages,
+    editMessage,   // 2. ADD THIS
+    deleteMessage, // 3. ADD THIS
   } = useChatStore();
   const { user } = useAuthStore();
   const messageEndRef = useRef(null);
+
+  const handleEditClick = (message) => {
+    setEditingMessageId(message._id);
+    setEditMessageText(message.text);
+  };
+
+  const handleSaveEdit = (messageId) => {
+    if (editMessageText.trim() !== "") {
+      editMessage(messageId, editMessageText.trim());
+    }
+    setEditingMessageId(null);
+    setEditMessageText("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditMessageText("");
+  };
 
   useEffect(() => {
     getMessages(selectedUser._id);
@@ -98,7 +122,7 @@ const ChatContainer = () => {
               key={message._id}
               className={`chat ${isMine ? "chat-end" : "chat-start"} ${
                 continuous ? "mt-0.5" : "mt-4"
-              }`}
+              } group relative`}
             >
               {/* Avatar — hidden for continuous messages to group them visually */}
               <div className="chat-image avatar">
@@ -120,12 +144,35 @@ const ChatContainer = () => {
 
               {/* Chat Bubble */}
               <div
-                className={`chat-bubble flex flex-col gap-2 shadow-sm ${
+                className={`chat-bubble relative flex flex-col gap-2 shadow-sm ${
                   isMine
                     ? "chat-bubble-primary text-primary-content"
                     : "bg-base-200 text-base-content"
                 }`}
               >
+                {/* Hover dropdown for Edit / Delete — only on own messages */}
+                {isMine && !editingMessageId && (
+                  <div className="absolute top-1/2 -translate-y-1/2 -left-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="dropdown dropdown-left">
+                      <div tabIndex={0} role="button" className="btn btn-xs btn-circle btn-ghost text-base-content/60 hover:text-base-content">
+                        <MoreVertical className="size-4" />
+                      </div>
+                      <ul tabIndex={0} className="dropdown-content z-[50] menu p-1.5 shadow bg-base-200 text-base-content rounded-box w-32">
+                        <li>
+                          <button onClick={() => handleEditClick(message)} className="text-sm py-1.5">
+                            <Edit2 className="size-3.5" /> Edit
+                          </button>
+                        </li>
+                        <li>
+                          <button onClick={() => deleteMessage(message._id)} className="text-sm py-1.5 text-error">
+                            <Trash2 className="size-3.5" /> Delete
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
                 {message.image && (
                   <img
                     src={`${BASE_URL}${message.image}`}
@@ -134,10 +181,38 @@ const ChatContainer = () => {
                     onClick={() => setSelectedImage(`${BASE_URL}${message.image}`)}
                   />
                 )}
-                {message.text && (
-                  <p className="text-sm md:text-base leading-relaxed break-words">
-                    {message.text}
-                  </p>
+
+                {/* Inline edit input or regular message text */}
+                {editingMessageId === message._id ? (
+                  <div className="flex items-center gap-2 my-1">
+                    <input
+                      type="text"
+                      value={editMessageText}
+                      onChange={(e) => setEditMessageText(e.target.value)}
+                      className="input input-sm input-bordered bg-base-100 text-base-content min-w-[200px]"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveEdit(message._id);
+                        if (e.key === "Escape") handleCancelEdit();
+                      }}
+                    />
+                    <button onClick={() => handleSaveEdit(message._id)} className="btn btn-xs btn-circle btn-success text-white">
+                      <Check className="size-3" />
+                    </button>
+                    <button onClick={handleCancelEdit} className="btn btn-xs btn-circle btn-error text-white">
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ) : (
+                  message.text && (
+                    <p className="text-sm md:text-base leading-relaxed break-words">
+                      {message.text}
+                      {/* Show (edited) tag inline if message was modified */}
+                      {message.isEdited && (
+                        <span className="text-[10px] italic opacity-60 ml-2">(edited)</span>
+                      )}
+                    </p>
+                  )
                 )}
               </div>
             </div>

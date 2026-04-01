@@ -317,6 +317,8 @@ export const useChatStore = create((set, get) => ({
 
         socket.off("typing");
         socket.off("stopTyping");
+        socket.off("messageEdited");  // <-- ADD THIS
+        socket.off("messageDeleted"); // <-- ADD THIS
 
         socket.on("typing", ({ senderId }) => {
             set((state) => ({
@@ -356,10 +358,57 @@ export const useChatStore = create((set, get) => ({
             });
         });
 
+        socket.on("messageEdited", (editedMessage) => {
+            // Update the specific message in the UI for the receiver
+            set((state) => ({
+                messages: state.messages.map((msg) =>
+                    msg._id === editedMessage._id ? editedMessage : msg
+                )
+            }));
+        });
+
+        socket.on("messageDeleted", (deletedMessageId) => {
+            // Remove the specific message from the UI for the receiver
+            set((state) => ({
+                messages: state.messages.filter((msg) => msg._id !== deletedMessageId)
+            }));
+        });
+
         socket.on("friendRequest", (senderUser) => {
             set((state) => ({
                 requestsInbox: [...state.requestsInbox, senderUser]
             }));
         });
+    },
+    editMessage: async (messageId, newText) => {
+        try {
+            const res = await axiosInstance.put(`/messages/edit/${messageId}`, { text: newText });
+            
+            // Update the message in the local state instantly
+            set((state) => ({
+                messages: state.messages.map((msg) => 
+                    msg._id === messageId ? res.data : msg
+                )
+            }));
+            
+            toast.success("Message edited");
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to edit message");
+        }
+    },
+
+    deleteMessage: async (messageId) => {
+        try {
+            await axiosInstance.delete(`/messages/delete/${messageId}`);
+            
+            // Remove the message from the local state instantly
+            set((state) => ({
+                messages: state.messages.filter((msg) => msg._id !== messageId)
+            }));
+            
+            toast.success("Message deleted");
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to delete message");
+        }
     },
 }))
