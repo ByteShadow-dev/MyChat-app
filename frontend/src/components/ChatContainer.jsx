@@ -5,6 +5,7 @@ import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import ImageViewer from "./ImageViewer"; // Added ImageViewer import
+import DragDropOverlay from "./DragDropOverlay"; // <-- Add this
 import { useAuthStore } from "../store/authStore";
 import { formatMessageTime } from "../lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +16,17 @@ const ChatContainer = () => {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   
+  const [isDragging, setIsDragging] = useState(false);
+  const [droppedFile, setDroppedFile] = useState(null);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer?.files[0];
+    if (file && file.type.startsWith("image/")) {
+      setDroppedFile(file);
+    }
+  };
 
   const {
     messages,
@@ -52,7 +64,20 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-auto">
+    <div 
+      className="flex-1 flex flex-col overflow-auto relative"
+      onDragEnter={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+    >
+      {isDragging && (
+        <DragDropOverlay 
+          onDrop={handleDrop} 
+          onDragLeave={() => setIsDragging(false)} 
+        />
+      )}
+
       <ChatHeader />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -101,7 +126,11 @@ const ChatContainer = () => {
         <div ref={messageEndRef}/>
       </div>
 
-      <MessageInput />
+      <MessageInput 
+        droppedFile={droppedFile} 
+        onFileConsumed={() => setDroppedFile(null)} 
+      />
+      
       {selectedImage && (
         <ImageViewer 
           src={selectedImage} 

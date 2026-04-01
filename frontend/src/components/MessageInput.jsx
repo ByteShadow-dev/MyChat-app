@@ -1,14 +1,25 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
 
-const MessageInput = () => {
+const MessageInput = ({ droppedFile, onFileConsumed }) => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
   const { sendMessage, emitTyping, emitStopTyping, selectedUser } = useChatStore();
   const typingTimeoutRef = useRef(null);  
+
+  useEffect(() => {
+    if (droppedFile) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(droppedFile);
+      if (onFileConsumed) onFileConsumed();
+    }
+  }, [droppedFile, onFileConsumed]);
   
 
   const handleImageChange = (e) => {
