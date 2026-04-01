@@ -1,12 +1,15 @@
 import { useChatStore } from "../store/useChatStore";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
+import ImageViewer from "./ImageViewer";
+import DragDropOverlay from "./DragDropOverlay";
 import { useAuthStore } from "../store/authStore";
 import { formatMessageTime } from "../lib/utils";
 
+const BASE_URL = "http://localhost:5000";
 const CONTINUOUS_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
 const isContinuous = (prevMessage, currMessage) => {
@@ -17,6 +20,19 @@ const isContinuous = (prevMessage, currMessage) => {
 };
 
 const ChatContainer = () => {
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [droppedFile, setDroppedFile] = useState(null);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer?.files[0];
+    if (file && file.type.startsWith("image/")) {
+      setDroppedFile(file);
+    }
+  };
+
   const {
     messages,
     getMessages,
@@ -50,11 +66,21 @@ const ChatContainer = () => {
     );
   }
 
-  // Extracted to keep the template cleaner
-  const BASE_URL = "http://localhost:5000";
-
   return (
-    <div className="flex-1 flex flex-col overflow-auto">
+    <div
+      className="flex-1 flex flex-col overflow-auto relative"
+      onDragEnter={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+    >
+      {isDragging && (
+        <DragDropOverlay
+          onDrop={handleDrop}
+          onDragLeave={() => setIsDragging(false)}
+        />
+      )}
+
       <ChatHeader />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -62,7 +88,7 @@ const ChatContainer = () => {
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const continuous = isContinuous(prevMessage, message);
           const isMine = message.senderId === user._id;
-          
+
           const profilePic = isMine
             ? (user.profilePic ? `${BASE_URL}${user.profilePic}` : "/avatar.png")
             : (selectedUser.profilePic ? `${BASE_URL}${selectedUser.profilePic}` : "/avatar.png");
@@ -74,7 +100,7 @@ const ChatContainer = () => {
                 continuous ? "mt-0.5" : "mt-4"
               }`}
             >
-              {/* Avatar */}
+              {/* Avatar — hidden for continuous messages to group them visually */}
               <div className="chat-image avatar">
                 <div
                   className={`size-10 rounded-full border border-base-300 shadow-sm ${
@@ -85,7 +111,7 @@ const ChatContainer = () => {
                 </div>
               </div>
 
-              {/* Timestamp */}
+              {/* Timestamp — only shown for the first message in a group */}
               {!continuous && (
                 <div className="chat-header mb-1 text-xs opacity-60 font-medium">
                   {formatMessageTime(message.createdAt)}
@@ -96,7 +122,7 @@ const ChatContainer = () => {
               <div
                 className={`chat-bubble flex flex-col gap-2 shadow-sm ${
                   isMine
-                    ? "chat-bubble-primary text-primary-content" 
+                    ? "chat-bubble-primary text-primary-content"
                     : "bg-base-200 text-base-content"
                 }`}
               >
@@ -104,7 +130,8 @@ const ChatContainer = () => {
                   <img
                     src={`${BASE_URL}${message.image}`}
                     alt="Attachment"
-                    className="max-w-[200px] sm:max-w-[250px] rounded-lg object-cover border border-base-100/10"
+                    className="max-w-[200px] sm:max-w-[250px] rounded-lg object-cover border border-base-100/10 cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setSelectedImage(`${BASE_URL}${message.image}`)}
                   />
                 )}
                 {message.text && (
@@ -116,11 +143,22 @@ const ChatContainer = () => {
             </div>
           );
         })}
+
         {/* Empty div for auto-scrolling */}
-        <div ref={messageEndRef} className="h-4" /> 
+        <div ref={messageEndRef} className="h-4" />
       </div>
 
-      <MessageInput />
+      <MessageInput
+        droppedFile={droppedFile}
+        onFileConsumed={() => setDroppedFile(null)}
+      />
+
+      {selectedImage && (
+        <ImageViewer
+          src={selectedImage}
+          onClose={() => setSelectedImage(null)}
+        />
+      )}
     </div>
   );
 };
