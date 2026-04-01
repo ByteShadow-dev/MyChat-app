@@ -16,6 +16,7 @@ export const useAuthStore = create((set, get) => ({
     isLoading:false,
     isCheckingAuth:true,
 	isUpdatingProfile: false, 
+	isUpdatingDetails: false,
 	onlineUsers: [],
 	socket: null,
 
@@ -128,6 +129,25 @@ export const useAuthStore = create((set, get) => ({
 			set({isUpdatingProfile: false});
 		}
 	},
+
+	updateUserDetails: async (data) => {
+        set({ isUpdatingDetails: true });
+        try {
+            const res = await axiosInstance.put("/auth/update-details", data);
+            
+            // The backend returns { message: "...", user: { ... } }
+            set({ user: res.data.user }); 
+            
+            toast.success(res.data.message || "Details updated successfully");
+        } catch (error) {
+            console.log("Error in updateUserDetails store: ", error);
+            toast.error(error.response?.data?.message || "Failed to update details");
+            throw error; // Throwing allows the component to catch it and stop closing the edit modal if it fails
+        } finally {
+            set({ isUpdatingDetails: false });
+        }
+    },
+
 	connectSocket: () => {
 
 		const { user } = get();

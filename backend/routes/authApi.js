@@ -1,5 +1,5 @@
 import express from "express";
-import { forgotPassword, login, logout, resetPassword, signup, verifyEmail, checkAuth, updateProfile, updateProfileLocal, getUserById, getFriends, sendFriendRequest, acceptFriendRequest, ignoreFriendRequest, removeFriend, changeAccountPrivacy, getRequestsSent, getRequestsInbox, getRequestsIgnored, getUserFriends } from "../controllers/userControllers.js";
+import { forgotPassword, login, logout, resetPassword, signup, verifyEmail, checkAuth, updateProfile, updateProfileLocal, getUserById, getFriends, sendFriendRequest, acceptFriendRequest, ignoreFriendRequest, removeFriend, changeAccountPrivacy, getRequestsSent, getRequestsInbox, getRequestsIgnored, getUserFriends, updateUserDetails } from "../controllers/userControllers.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { getAllUsers } from "../controllers/messageController.js";
 
@@ -42,5 +42,7 @@ router.put('/user/privacy', verifyToken, changeAccountPrivacy);
 router.post('/search', verifyToken, getAllUsers)
 
 router.get('/user/:id/friends', verifyToken, getUserFriends);
+
+router.put('/update-details', verifyToken, updateUserDetails);
 
 export default router;
