@@ -4,6 +4,8 @@ import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./authStore";
 import { useNotificationStore } from "./useNotificationStore";
 
+const isOnChatsPage = () => window.location.pathname === "/chats";
+
 export const useChatStore = create((set, get) => ({
   messages: [],
   users: [],
@@ -258,104 +260,116 @@ export const useChatStore = create((set, get) => ({
         });
     }, */
 
-//   subscribeToMessages: () => {
-//     const { selectedUser } = get();
-//     if (!selectedUser) return;
+  //   subscribeToMessages: () => {
+  //     const { selectedUser } = get();
+  //     if (!selectedUser) return;
 
-//     const socket = useAuthStore.getState().socket;
+  //     const socket = useAuthStore.getState().socket;
 
-//     socket.off("newMessage");
+  //     socket.off("newMessage");
 
-//     socket.on("newMessage", (newMessage) => {
-//       const isFromSelectedUser = newMessage.senderId === selectedUser._id;
+  //     socket.on("newMessage", (newMessage) => {
+  //       const isFromSelectedUser = newMessage.senderId === selectedUser._id;
 
-//       if (isFromSelectedUser) {
-//         // Chat is open — add to messages normally
-//         set({ messages: [...get().messages, newMessage] });
-//       } else {
-//         // Chat is not open — mark as unread
-//         set((state) => ({
-//           unreadMessages: {
-//             ...state.unreadMessages,
-//             [newMessage.senderId]: true,
-//           },
-//         }));
-//       }
+  //       if (isFromSelectedUser) {
+  //         // Chat is open — add to messages normally
+  //         set({ messages: [...get().messages, newMessage] });
+  //       } else {
+  //         // Chat is not open — mark as unread
+  //         set((state) => ({
+  //           unreadMessages: {
+  //             ...state.unreadMessages,
+  //             [newMessage.senderId]: true,
+  //           },
+  //         }));
+  //       }
 
-//       // Bump friend to top of sidebar
-//       set((state) => {
-//         const updatedFriends = state.friends.map((friend) => {
-//           if (
-//             friend._id === newMessage.senderId ||
-//             friend._id === newMessage.receiverId
-//           ) {
-//             return { ...friend, lastMessageTime: newMessage.createdAt };
-//           }
-//           return friend;
-//         });
-//         updatedFriends.sort(
-//           (a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime),
-//         );
-//         return { friends: updatedFriends };
-//       });
-//     });
-//   },
+  //       // Bump friend to top of sidebar
+  //       set((state) => {
+  //         const updatedFriends = state.friends.map((friend) => {
+  //           if (
+  //             friend._id === newMessage.senderId ||
+  //             friend._id === newMessage.receiverId
+  //           ) {
+  //             return { ...friend, lastMessageTime: newMessage.createdAt };
+  //           }
+  //           return friend;
+  //         });
+  //         updatedFriends.sort(
+  //           (a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime),
+  //         );
+  //         return { friends: updatedFriends };
+  //       });
+  //     });
+  //   },
 
-    subscribeToMessages: () => {
-  const { selectedUser } = get();
-  if (!selectedUser) return;
+  subscribeToMessages: () => {
+    const { selectedUser } = get();
+    if (!selectedUser) return;
 
-  const socket = useAuthStore.getState().socket;
-  socket.off("newMessage");
+    const socket = useAuthStore.getState().socket;
 
-  socket.on("newMessage", (newMessage) => {
-    const currentSelectedUser = get().selectedUser; // ✅ live state instead of closure
+    // ✅ Start fresh with the full global listener (typing, friendRequest, newMessage for others)
+    get().subscribeToGlobalMessages();
 
-    // ✅ if user navigated away, selectedUser is now null — restore global listener
-    if (!currentSelectedUser) {
-      get().subscribeToGlobalMessages();
-      return;
-    }
+    // ✅ Now override ONLY the newMessage handler to also handle the open chat
+    socket.off("newMessage");
 
-    const isFromSelectedUser = newMessage.senderId === currentSelectedUser._id; // ✅ use live value
-
-    if (isFromSelectedUser) {
-      set({ messages: [...get().messages, newMessage] });
-    } else {
-      // ✅ show notification for messages from others even while a chat is open
+    socket.on("newMessage", (newMessage) => {
+      const currentSelectedUser = get().selectedUser;
       const { addNotification } = useNotificationStore.getState();
-      const sender = get().friends.find((f) => f._id === newMessage.senderId);
-      set((state) => ({
-        unreadMessages: { ...state.unreadMessages, [newMessage.senderId]: true },
-      }));
-      addNotification({
-        type: "message",
-        title: sender?.name || "New Message",
-        message: newMessage.text || "Sent an image",
-        avatar: sender?.profilePic
-          ? `http://localhost:5000${sender.profilePic}`
-          : null,
-      });
+
+      if (!currentSelectedUser) {
+        get().subscribeToGlobalMessages();
+        return;
+      }
+
+      const isFromSelectedUser =
+        newMessage.senderId === currentSelectedUser._id;
+
+      if (isFromSelectedUser) {
+        // Message is from the open chat — add it to the conversation
+        set({ messages: [...get().messages, newMessage] });
+      } else {
+        // Message is from someone else — mark unread and notify
+        const sender = get().friends.find((f) => f._id === newMessage.senderId);
+        set((state) => ({
+          unreadMessages: {
+            ...state.unreadMessages,
+            [newMessage.senderId]: true,
+          },
+        }));
+        
+        if (!isOnChatsPage()) {
+          addNotification({
+            type: "message",
+            title: sender?.name || "New Message",
+            message: newMessage.text || "Sent an image",
+            avatar: sender?.profilePic
+              ? `http://localhost:5000${sender.profilePic}`
+              : null,
+          });
+        }
     }
 
-    // Bump friend to top of sidebar
-    set((state) => {
-      const updatedFriends = state.friends.map((friend) => {
-        if (
-          friend._id === newMessage.senderId ||
-          friend._id === newMessage.receiverId
-        ) {
-          return { ...friend, lastMessageTime: newMessage.createdAt };
-        }
-        return friend;
+      // Bump friend to top of sidebar
+      set((state) => {
+        const updatedFriends = state.friends.map((friend) => {
+          if (
+            friend._id === newMessage.senderId ||
+            friend._id === newMessage.receiverId
+          ) {
+            return { ...friend, lastMessageTime: newMessage.createdAt };
+          }
+          return friend;
+        });
+        updatedFriends.sort(
+          (a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime),
+        );
+        return { friends: updatedFriends };
       });
-      updatedFriends.sort(
-        (a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime)
-      );
-      return { friends: updatedFriends };
     });
-  });
-},
+  },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
