@@ -1,9 +1,10 @@
 import { useChatStore } from "../store/useChatStore";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
+import ImageViewer from "./ImageViewer"; // Added ImageViewer import
 import { useAuthStore } from "../store/authStore";
 import { formatMessageTime } from "../lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +13,8 @@ import { useNavigate } from "react-router-dom";
 const ChatContainer = () => {
 
   const navigate = useNavigate();
+  const [selectedImage, setSelectedImage] = useState(null);
+  
 
   const {
     messages,
@@ -76,11 +79,19 @@ const ChatContainer = () => {
               </time>
             </div>
             <div className="chat-bubble flex flex-col">
-              {message.image && (
+              {/*message.image && (
                 <img
                   src={`http://localhost:5000${message.image}`}
                   alt="Attachment"
                   className="sm:max-w-[200px] rounded-md mb-2"
+                />
+              )*/}
+              {message.image && (
+                <img
+                  src={`http://localhost:5000${message.image}`}
+                  alt="Attachment"
+                  className="sm:max-w-[200px] rounded-md mb-2 cursor-pointer hover:opacity-90 transition-opacity" 
+                  onClick={() => setSelectedImage(`http://localhost:5000${message.image}`)} 
                 />
               )}
               {message.text && <p>{message.text}</p>}
@@ -91,6 +102,12 @@ const ChatContainer = () => {
       </div>
 
       <MessageInput />
+      {selectedImage && (
+        <ImageViewer 
+          src={selectedImage} 
+          onClose={() => setSelectedImage(null)} 
+        />
+      )}
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { axiosInstance } from "../lib/axios";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/authStore";
 import ConfirmModal from "../components/ConfirmModal";
+import ImageViewer from "../components/ImageViewer";
 
 const UserProfilePage = () => {
   const { userId } = useParams();
@@ -14,7 +15,7 @@ const UserProfilePage = () => {
   const [profileUser, setProfileUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPrivate, setIsPrivate] = useState(false);
-
+  const [selectedImage, setSelectedImage] = useState(null); // Add this stateconst [selectedImage, setSelectedImage] = useState(null); // Add this state
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, friendId: null, friendName: "" }); // states for confirm user removal box
 
   const fetchUser = async () => {
@@ -136,10 +137,16 @@ const UserProfilePage = () => {
             </div>
 
             <div className="flex flex-col items-center gap-4">
-              <img
+              {/* <img
                 src={profileUser.profilePic ? `http://localhost:5000${profileUser.profilePic}` : "/avatar.png"}
                 alt="Profile"
                 className="size-32 rounded-full object-cover border-4"
+              /> */}
+              <img
+                src={profileUser.profilePic ? `http://localhost:5000${profileUser.profilePic}` : "/avatar.png"}
+                alt="Profile"
+                className="size-32 rounded-full object-cover border-4 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setSelectedImage(profileUser.profilePic ? `http://localhost:5000${profileUser.profilePic}` : "/avatar.png")}
               />
 
               {/* Action buttons */}
@@ -292,6 +299,13 @@ const UserProfilePage = () => {
         onConfirm={handleConfirmRemove}
         onCancel={handleCancelRemove}
       />
+      {selectedImage && (
+        <ImageViewer 
+          src={selectedImage} 
+          onClose={() => setSelectedImage(null)} 
+          isProfilePic={true}
+        />
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { X, Download } from "lucide-react";
 import { useEffect } from "react";
 
-const ImageViewer = ({ src, onClose }) => {
+const ImageViewer = ({ src, onClose , isProfilePic = false}) => {
 
     // Close on Escape key
     useEffect(() => {
@@ -42,11 +42,21 @@ const ImageViewer = ({ src, onClose }) => {
             </div>
 
             {/* Image */}
-            <img
+            {/* <img
                 src={src}
                 alt="Full view"
                 className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
                 onClick={(e) => e.stopPropagation()} // don't close when clicking image itself
+            /> */}
+            <img
+                src={src}
+                alt="Full view"
+                className={`shadow-2xl ${
+                    isProfilePic 
+                        ? "w-[min(90vw,90vh)] max-w-[500px] aspect-square object-cover rounded-full" 
+                        : "max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                }`}
+                onClick={(e) => e.stopPropagation()} 
             />
         </div>
     );

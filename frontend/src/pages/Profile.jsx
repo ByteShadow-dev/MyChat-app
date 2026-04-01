@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/authStore";
 import ConfirmModal from "../components/ConfirmModal.jsx";
+import ImageViewer from "../components/ImageViewer"; // <--- ADD THIS LINE
 
 const UserProfilePage = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const UserProfilePage = () => {
   const { user, updateProfile, isUpdatingProfile, changePrivacy } = useAuthStore();
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, friendId: null, friendName: "" }); // states for confirm user removal box
   const [selectedImg, setSelectedImg] = useState(null);
+  const [viewingImage, setViewingImage] = useState(null); // <--- ADD THIS LINE for the overlay
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -89,7 +91,8 @@ const UserProfilePage = () => {
                     (user.profilePic ? `http://localhost:5000${user.profilePic}` : "/avatar.png")
                   }
                   alt="Profile"
-                  className="size-32 rounded-full object-cover border-4"
+                  className="size-32 rounded-full object-cover border-4 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setViewingImage(selectedImg || (user.profilePic ? `http://localhost:5000${user.profilePic}` : "/avatar.png"))}
                 />
                 <label
                   htmlFor="avatar-upload"
@@ -231,6 +234,14 @@ const UserProfilePage = () => {
         onConfirm={handleConfirmRemove}
         onCancel={handleCancelRemove}
       />
+      {/* ADD THIS BLOCK */}
+      {viewingImage && (
+        <ImageViewer 
+          src={viewingImage} 
+          onClose={() => setViewingImage(null)} 
+          isProfilePic={true}
+        />
+      )}
     </div>
   );
 };
