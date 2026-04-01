@@ -95,3 +95,89 @@ export const sendMessage = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 }
+
+export const editMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { text } = req.body;
+        const senderId = req.user._id;
+
+        const message = await Message.findById(messageId);
+
+        if (!message) {
+            return res.status(404).json({ message: "Message not found" });
+        }
+
+        // 1. Verify the user editing is the actual sender
+        if (message.senderId.toString() !== senderId.toString()) {
+            return res.status(403).json({ message: "Unauthorized to edit this message" });
+        }
+
+        // 2. Enforce the 10-minute rule (10 mins * 60 secs * 1000 ms)
+        const tenMinutes = 10 * 60 * 1000;
+        const timeElapsed = Date.now() - new Date(message.createdAt).getTime();
+
+        if (timeElapsed > tenMinutes) {
+            return res.status(403).json({ message: "Messages can only be edited within 10 minutes of sending" });
+        }
+
+        // 3. Update the message
+        message.text = text;
+        message.isEdited = true;
+        await message.save();
+
+        // 4. Emit real-time socket event to the receiver
+        const receiverSocketId = getReceiverSocketId(message.receiverId);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("messageEdited", message);
+        }
+
+        res.status(200).json(message);
+    } catch (error) {
+        console.error("Error in editMessage controller: ", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const deleteMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const senderId = req.user._id;
+
+        const message = await Message.findById(messageId);
+
+        if (!message) {
+            return res.status(404).json({ message: "Message not found" });
+        }
+
+        // 1. Verify the user deleting is the actual sender
+        if (message.senderId.toString() !== senderId.toString()) {
+            return res.status(403).json({ message: "Unauthorized to delete this message" });
+        }
+
+        // 2. Enforce the 10-minute rule
+        const tenMinutes = 10 * 60 * 1000;
+        const timeElapsed = Date.now() - new Date(message.createdAt).getTime();
+
+        if (timeElapsed > tenMinutes) {
+            return res.status(403).json({ message: "Messages can only be deleted within 10 minutes of sending" });
+        }
+
+        // 3. Delete from database
+        await Message.findByIdAndDelete(messageId);
+
+        // Optional: If you want to delete the physical image file from your local storage too, 
+        // you would add a helper function here (e.g., deleteImageLocally(message.image))
+
+        // 4. Emit real-time socket event to receiver so it disappears from their screen
+        const receiverSocketId = getReceiverSocketId(message.receiverId);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("messageDeleted", messageId);
+        }
+
+        res.status(200).json({ message: "Message deleted successfully", messageId });
+    } catch (error) {
+        console.error("Error in deleteMessage controller: ", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
