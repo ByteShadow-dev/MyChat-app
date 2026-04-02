@@ -603,3 +603,46 @@ export const getUserFriends = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 }
+
+export const updateUserDetails = async (req, res) => {
+    try {
+        const { name, username } = req.body;
+        const userId = req.user._id;
+
+        // Ensure at least one field is provided
+        if (!name && !username) {
+            return res.status(400).json({ message: "Please provide a name or username to update" });
+        }
+
+        const updates = {};
+
+        if (name) {
+            updates.name = name.trim();
+        }
+
+        if (username) {
+            // Check if the requested username is already taken by someone else
+            const existingUser = await User.findOne({ username: username.trim() });
+            
+            if (existingUser && existingUser._id.toString() !== userId.toString()) {
+                return res.status(400).json({ message: "Username is already taken" });
+            }
+            updates.username = username.trim();
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            updates,
+            { new: true }
+        ).select("-password");
+
+        res.status(200).json({
+            message: "Profile details updated successfully",
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.log("Error in updateUserDetails controller: ", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}

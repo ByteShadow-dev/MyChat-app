@@ -256,6 +256,10 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
 
     get().subscribeToGlobalMessages();
+        socket.off("typing");
+        socket.off("stopTyping");
+        socket.off("messageEdited");  // <-- ADD THIS
+        socket.off("messageDeleted"); // <-- ADD THIS
 
     socket.off("newMessage");
 
@@ -375,7 +379,6 @@ export const useChatStore = create((set, get) => ({
         }));
 
         const sender = get().friends.find((f) => f._id === newMessage.senderId);
-        console.log("new message");
         addNotification({
           type: "message",
           title: sender?.name || "New Message",
@@ -419,5 +422,53 @@ export const useChatStore = create((set, get) => ({
           : null,
       });
     });
+
+    // Restored from original
+    socket.on("messageEdited", (editedMessage) => {
+      set((state) => ({
+        messages: state.messages.map((msg) =>
+          msg._id === editedMessage._id ? editedMessage : msg
+        )
+      }));
+    });
+
+    // Restored from original
+    socket.on("messageDeleted", (deletedMessageId) => {
+      set((state) => ({
+        messages: state.messages.filter((msg) => msg._id !== deletedMessageId)
+      }));
+    });
+  },
+
+  // Restored from original
+  editMessage: async (messageId, newText) => {
+    try {
+      const res = await axiosInstance.put(`/messages/edit/${messageId}`, { text: newText });
+      
+      set((state) => ({
+        messages: state.messages.map((msg) => 
+          msg._id === messageId ? res.data : msg
+        )
+      }));
+      
+      toast.success("Message edited");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to edit message");
+    }
+  },
+
+  // Restored from original
+  deleteMessage: async (messageId) => {
+    try {
+      await axiosInstance.delete(`/messages/delete/${messageId}`);
+      
+      set((state) => ({
+        messages: state.messages.filter((msg) => msg._id !== messageId)
+      }));
+      
+      toast.success("Message deleted");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete message");
+    }
   },
 }));

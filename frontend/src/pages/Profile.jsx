@@ -1,28 +1,32 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, User, AtSign, UserMinus, Lock, Camera } from "lucide-react";
+import { Mail, User, AtSign, UserMinus, Lock, Camera, Pencil, Check, X } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/authStore";
 import ConfirmModal from "../components/ConfirmModal.jsx";
-import ImageViewer from "../components/ImageViewer"; // <--- ADD THIS LINE
+import ImageViewer from "../components/ImageViewer";
 
-const UserProfilePage = () => {
+const Profile = () => {
   const navigate = useNavigate();
-  // Extracted isUpdatingProfile from useAuthStore
-  const { user, updateProfile, isUpdatingProfile, changePrivacy } = useAuthStore();
-  const [confirmModal, setConfirmModal] = useState({ isOpen: false, friendId: null, friendName: "" }); // states for confirm user removal box
+  const { user, updateProfile, isUpdatingProfile, changePrivacy, updateUserDetails, isUpdatingDetails } = useAuthStore();
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, friendId: null, friendName: "" });
   const [selectedImg, setSelectedImg] = useState(null);
-  const [viewingImage, setViewingImage] = useState(null); // <--- ADD THIS LINE for the overlay
+  const [viewingImage, setViewingImage] = useState(null);
+
+  // Edit state for name
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState("");
+
+  // Edit state for username
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameValue, setUsernameValue] = useState("");
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
-
     reader.readAsDataURL(file);
-
     reader.onload = async () => {
       const base64Image = reader.result;
       setSelectedImg(base64Image);
@@ -40,18 +44,66 @@ const UserProfilePage = () => {
   } = useChatStore();
 
   const handleRemoveClick = (friendId, friendName) => {
-    setConfirmModal({isOpen: true, friendId: friendId, friendName:friendName});
-  }
+    setConfirmModal({ isOpen: true, friendId: friendId, friendName: friendName });
+  };
 
   const handleConfirmRemove = async () => {
     await removeFriend(confirmModal.friendId);
     getProfileUserFriends(user._id);
-    setConfirmModal({isOpen: false, friendId:null, friendName:""})
-  }
+    setConfirmModal({ isOpen: false, friendId: null, friendName: "" });
+  };
 
   const handleCancelRemove = () => {
-    setConfirmModal({isOpen: false, friendId: null, friendName:""});
-  }
+    setConfirmModal({ isOpen: false, friendId: null, friendName: "" });
+  };
+
+  // Name edit handlers
+  const handleEditName = () => {
+    setNameValue(user.name);
+    setEditingName(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!nameValue.trim() || nameValue.trim() === user.name) {
+      setEditingName(false);
+      return;
+    }
+    try {
+      await updateUserDetails({ name: nameValue.trim() });
+      setEditingName(false);
+    } catch {
+      // toast is handled in the store
+    }
+  };
+
+  const handleCancelName = () => {
+    setEditingName(false);
+    setNameValue("");
+  };
+
+  // Username edit handlers
+  const handleEditUsername = () => {
+    setUsernameValue(user.username);
+    setEditingUsername(true);
+  };
+
+  const handleSaveUsername = async () => {
+    if (!usernameValue.trim() || usernameValue.trim() === user.username) {
+      setEditingUsername(false);
+      return;
+    }
+    try {
+      await updateUserDetails({ username: usernameValue.trim() });
+      setEditingUsername(false);
+    } catch {
+      // toast is handled in the store
+    }
+  };
+
+  const handleCancelUsername = () => {
+    setEditingUsername(false);
+    setUsernameValue("");
+  };
 
   useEffect(() => {
     if (!user?._id) return;
@@ -82,12 +134,12 @@ const UserProfilePage = () => {
               <p className="mt-2 text-zinc-400">@{user.username}</p>
             </div>
 
-            {/* FUSED AVATAR UPLOAD SECTION */}
+            {/* Avatar upload section */}
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
                 <img
                   src={
-                    selectedImg || 
+                    selectedImg ||
                     (user.profilePic ? `http://localhost:5000${user.profilePic}` : "/avatar.png")
                   }
                   alt="Profile"
@@ -121,20 +173,104 @@ const UserProfilePage = () => {
             </div>
 
             <div className="space-y-6">
+
+              {/* Full Name field */}
               <div className="space-y-1.5">
                 <div className="text-sm text-zinc-400 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Full Name
                 </div>
-                <p className="px-4 py-2.5 bg-base-200 rounded-lg border">{user.name}</p>
+                {editingName ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={nameValue}
+                      onChange={(e) => setNameValue(e.target.value)}
+                      className="input input-bordered bg-base-200 flex-1"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveName();
+                        if (e.key === "Escape") handleCancelName();
+                      }}
+                    />
+                    <button
+                      onClick={handleSaveName}
+                      disabled={isUpdatingDetails}
+                      className="btn btn-sm btn-circle btn-success text-white"
+                    >
+                      {isUpdatingDetails ? <span className="loading loading-spinner loading-xs" /> : <Check className="size-4" />}
+                    </button>
+                    <button
+                      onClick={handleCancelName}
+                      disabled={isUpdatingDetails}
+                      className="btn btn-sm btn-circle btn-error text-white"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="group flex items-center gap-2">
+                    <p className="px-4 py-2.5 bg-base-200 rounded-lg border flex-1">{user.name}</p>
+                    <button
+                      onClick={handleEditName}
+                      className="btn btn-sm btn-ghost opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {/* Username field */}
               <div className="space-y-1.5">
                 <div className="text-sm text-zinc-400 flex items-center gap-2">
                   <AtSign className="w-4 h-4" />
                   Username
                 </div>
-                <p className="px-4 py-2.5 bg-base-200 rounded-lg border">{user.username}</p>
+                {editingUsername ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={usernameValue}
+                      onChange={(e) => setUsernameValue(e.target.value)}
+                      className="input input-bordered bg-base-200 flex-1"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveUsername();
+                        if (e.key === "Escape") handleCancelUsername();
+                      }}
+                    />
+                    <button
+                      onClick={handleSaveUsername}
+                      disabled={isUpdatingDetails}
+                      className="btn btn-sm btn-circle btn-success text-white"
+                    >
+                      {isUpdatingDetails ? <span className="loading loading-spinner loading-xs" /> : <Check className="size-4" />}
+                    </button>
+                    <button
+                      onClick={handleCancelUsername}
+                      disabled={isUpdatingDetails}
+                      className="btn btn-sm btn-circle btn-error text-white"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="group flex items-center gap-2">
+                    <p className="px-4 py-2.5 bg-base-200 rounded-lg border flex-1">{user.username}</p>
+                    <button
+                      onClick={handleEditUsername}
+                      className="btn btn-sm btn-ghost opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {/* Email field — read only, no edit */}
               <div className="space-y-1.5">
                 <div className="text-sm text-zinc-400 flex items-center gap-2">
                   <Mail className="w-4 h-4" />
@@ -156,18 +292,18 @@ const UserProfilePage = () => {
                   <span className="text-green-500">Active</span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-t border-zinc-700">
-                <span>Account Privacy</span>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <span className="text-xs text-base-content/50">
-                            {user.isPrivate ? "Private" : "Public"}
-                        </span>
-                        <input
-                            type="checkbox"
-                            className="toggle toggle-sm toggle-primary"
-                            checked={user.isPrivate || false}
-                            onChange={(e) => changePrivacy(e.target.checked)}
-                        />
-                    </label>
+                  <span>Account Privacy</span>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-xs text-base-content/50">
+                      {user.isPrivate ? "Private" : "Public"}
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-sm toggle-primary"
+                      checked={user.isPrivate || false}
+                      onChange={(e) => changePrivacy(e.target.checked)}
+                    />
+                  </label>
                 </div>
               </div>
             </div>
@@ -228,21 +364,23 @@ const UserProfilePage = () => {
 
         </div>
       </div>
+
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         friendName={confirmModal.friendName}
         onConfirm={handleConfirmRemove}
         onCancel={handleCancelRemove}
       />
-      {/* ADD THIS BLOCK */}
+
       {viewingImage && (
-        <ImageViewer 
-          src={viewingImage} 
-          onClose={() => setViewingImage(null)} 
+        <ImageViewer
+          src={viewingImage}
+          onClose={() => setViewingImage(null)}
           isProfilePic={true}
         />
       )}
     </div>
   );
 };
-export default UserProfilePage;
+
+export default Profile;
