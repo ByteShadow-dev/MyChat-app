@@ -38,6 +38,11 @@ const Navbar = () => {
         }
     }
 
+    const handleNavigate = (path) => {
+        setSelectedUser(null);
+        navigate(path);
+    };
+
     return (
         <div className='flex justify-between items-center p-3 bg-base-300'>
             <Link to={'/'} className='flex gap-1' onClick={() => setSelectedUser(null)}>
@@ -47,16 +52,14 @@ const Navbar = () => {
             <div className='flex items-center gap-2'>
 
                 <button className='btn btn-ghost' onClick={() => {
-                    setSelectedUser(null);
-                    navigate('/settings');
+                    handleNavigate('/settings')
 
                 }}>
                     <SettingsIcon />Settings
                 </button>
 
                 {isAuthenticated && <button className='btn btn-ghost' onClick={() => {
-                    setSelectedUser(null);
-                    navigate('/profile');
+                    handleNavigate('/profile');
                 }}>
                     <UserIcon />Profile
                 </button>}

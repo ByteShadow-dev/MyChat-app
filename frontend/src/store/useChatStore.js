@@ -249,70 +249,14 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  /* subscribeToMessages: () => {
-        const { selectedUser } = get();
-        if (!selectedUser) return;
-        const socket = useAuthStore.getState().socket;
-        socket.on("newMessage", (newMessage) => {
-            const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
-            if (!isMessageSentFromSelectedUser) return;
-            set({ messages: [...get().messages, newMessage] });
-        });
-    }, */
-
-  //   subscribeToMessages: () => {
-  //     const { selectedUser } = get();
-  //     if (!selectedUser) return;
-
-  //     const socket = useAuthStore.getState().socket;
-
-  //     socket.off("newMessage");
-
-  //     socket.on("newMessage", (newMessage) => {
-  //       const isFromSelectedUser = newMessage.senderId === selectedUser._id;
-
-  //       if (isFromSelectedUser) {
-  //         // Chat is open — add to messages normally
-  //         set({ messages: [...get().messages, newMessage] });
-  //       } else {
-  //         // Chat is not open — mark as unread
-  //         set((state) => ({
-  //           unreadMessages: {
-  //             ...state.unreadMessages,
-  //             [newMessage.senderId]: true,
-  //           },
-  //         }));
-  //       }
-
-  //       // Bump friend to top of sidebar
-  //       set((state) => {
-  //         const updatedFriends = state.friends.map((friend) => {
-  //           if (
-  //             friend._id === newMessage.senderId ||
-  //             friend._id === newMessage.receiverId
-  //           ) {
-  //             return { ...friend, lastMessageTime: newMessage.createdAt };
-  //           }
-  //           return friend;
-  //         });
-  //         updatedFriends.sort(
-  //           (a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime),
-  //         );
-  //         return { friends: updatedFriends };
-  //       });
-  //     });
-  //   },
-
   subscribeToMessages: () => {
     const { selectedUser } = get();
     if (!selectedUser) return;
 
     const socket = useAuthStore.getState().socket;
 
-    // ✅ Start fresh with the full global listener (typing, friendRequest, newMessage for others)
     get().subscribeToGlobalMessages();
 
-    // ✅ Now override ONLY the newMessage handler to also handle the open chat
     socket.off("newMessage");
 
     socket.on("newMessage", (newMessage) => {
@@ -339,7 +283,7 @@ export const useChatStore = create((set, get) => ({
             [newMessage.senderId]: true,
           },
         }));
-        
+
         if (!isOnChatsPage()) {
           addNotification({
             type: "message",
@@ -350,7 +294,7 @@ export const useChatStore = create((set, get) => ({
               : null,
           });
         }
-    }
+      }
 
       // Bump friend to top of sidebar
       set((state) => {
@@ -374,23 +318,9 @@ export const useChatStore = create((set, get) => ({
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
     socket.off("newMessage");
-    get().subscribeToGlobalMessages(); // ✅ use get() directly, no need for getState()
+    get().subscribeToGlobalMessages(); 
   },
 
-  //   setSelectedUser: (selectedUser) => {
-  //     set({ selectedUser });
-
-  //     // When a user is selected (chat opened), clear their unread badge
-  //     if (selectedUser) {
-  //       set((state) => ({
-  //         friends: state.friends.map((friend) =>
-  //           friend._id === selectedUser._id
-  //             ? { ...friend, unread: false }
-  //             : friend,
-  //         ),
-  //       }));
-  //     }
-  //   },
   setSelectedUser: (selectedUser) => {
     set({ selectedUser });
 
@@ -403,7 +333,6 @@ export const useChatStore = create((set, get) => ({
         ),
       }));
     } else {
-      // ✅ No chat open — restore global listener
       const socket = useAuthStore.getState().socket;
       if (socket) {
         socket.off("newMessage");
@@ -435,7 +364,7 @@ export const useChatStore = create((set, get) => ({
 
     socket.on("newMessage", (newMessage) => {
       const selectedUser = get().selectedUser;
-      const { addNotification } = useNotificationStore.getState(); // ✅ import at top of file
+      const { addNotification } = useNotificationStore.getState(); 
 
       if (!selectedUser || newMessage.senderId !== selectedUser._id) {
         set((state) => ({
@@ -445,7 +374,6 @@ export const useChatStore = create((set, get) => ({
           },
         }));
 
-        // ✅ Trigger notification
         const sender = get().friends.find((f) => f._id === newMessage.senderId);
         console.log("new message");
         addNotification({
@@ -476,13 +404,12 @@ export const useChatStore = create((set, get) => ({
     });
 
     socket.on("friendRequest", (senderUser) => {
-      const { addNotification } = useNotificationStore.getState(); // ✅
+      const { addNotification } = useNotificationStore.getState(); 
 
       set((state) => ({
         requestsInbox: [...state.requestsInbox, senderUser],
       }));
 
-      // ✅ Trigger notification
       addNotification({
         type: "friendRequest",
         title: "New Friend Request",
